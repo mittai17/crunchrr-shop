@@ -1,0 +1,21 @@
+# Keep the build context lean and secrets out of the image.
+.git
+.github
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/*.tsbuildinfo
+
+# Env files are injected at runtime by the host, never copied.
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Not needed by the API image
+apps/web
+!apps/web/package.json
+screenshots
+*.log
+README.md

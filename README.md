@@ -162,9 +162,94 @@ Verified page captures live in `screenshots/`.
   @clerk/backend · razorpay · cashfree-pg
 - **Infra**: Neon Postgres · pnpm workspaces
 
+## Deploy
+
+Step-by-step go-live for a one-person shop. The API ships as a container
+(`Dockerfile` at the repo root) so it deploys unchanged to Fly.io, Railway,
+Render, or a plain VPS; the web app deploys to Vercel.
+
+### 1. Production data (Neon)
+
+```bash
+# Create the prod project in the Neon org, then push schema + seed to it.
+# Inline DATABASE_URL wins over apps/api/.env (drizzle-kit reads process.env).
+DATABASE_URL="postgres://<user>:<pw>@<prod-host>/crunchrr-shop?sslmode=require" \
+  pnpm --filter @crunchrr/api db:push
+DATABASE_URL="postgres://...same..." pnpm --filter @crunchrr/api db:seed
+```
+
+### 2. Web → Vercel
+
+Import the repo, set **Root Directory = `apps/web`** (Next.js auto-detected).
+Set these env vars *before* the first deploy — `NEXT_PUBLIC_*` values are
+inlined at build time:
+
+| Variable | Value |
+| --- | --- |
+| `NEXT_PUBLIC_API_URL` | `https://<api-domain>` |
+| `API_INTERNAL_URL` | same as above (Vercel has no private network to the API) |
+| `NEXT_PUBLIC_SITE_URL` | `https://<storefront-domain>` |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | **live-instance** `pk_…` |
+| `CLERK_SECRET_KEY` | **live-instance** `sk_…` |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | `/sign-in` (routing vars keep their defaults) |
+
+### 3. API → Fly.io (example)
+
+```bash
+fly launch --dockerfile --no-deploy          # generate fly.toml from the Dockerfile
+# fly.toml → [http_service] internal_port = 4001, checks path = "/api/health"
+fly secrets set DATABASE_URL="postgres://…" \
+  CLERK_SECRET_KEY="sk_…" CORS_ORIGINS="https://<storefront-domain>" \
+  RAZORPAY_KEY_ID=… RAZORPAY_KEY_SECRET=… RAZORPAY_WEBHOOK_SECRET=… \
+  CASHFREE_APP_ID=… CASHFREE_SECRET_KEY=… \
+  QIKINK_CLIENT_ID=… QIKINK_CLIENT_SECRET=…
+fly deploy
+```
+
+Railway/Render: create a service from the repo — the Dockerfile is detected
+automatically; add the same variables in the dashboard. On any host set
+`NODE_ENV=production`, leave `FORCE_DEMO_PAYMENTS` unset, and keep
+`CORS_ORIGINS` limited to the storefront origin(s).
+
+### 4. Clerk production instance
+
+Create the **production instance** of `crunchrr-shop` in the Clerk dashboard,
+copy its live `pk_`/`sk_` keys into Vercel (web) and the API host, and add the
+storefront domain under **Allowed origins / redirects**. Keep the dev instance
+for local work.
+
+### 5. Payments: demo → real
+
+- **Razorpay** — grab live keys, then create a webhook pointing at
+  `https://<api-domain>/api/webhooks/razorpay` and subscribe it to
+  `payment.captured`, `order.paid`, `payment.authorized`, `payment.failed`,
+  `order.cancelled` (anything else is archived as `ignored`). The webhook
+  secret becomes `RAZORPAY_WEBHOOK_SECRET`.
+- **Cashfree** — real app credentials; webhook at
+  `https://<api-domain>/api/webhooks/cashfree` (until configured, the route
+  401s — intentional).
+- **Partners** — replace the seeded Qikink/Printrove credential rows with real
+  accounts (Drizzle Studio: `pnpm --filter @crunchrr/api db:studio`). Adapters
+  fall back to simulation only when credentials are absent.
+- Confirm `FORCE_DEMO_PAYMENTS=false`/unset — demo endpoints also self-disable
+  when `NODE_ENV=production`.
+
+### 6. Post-deploy smoke test (5 minutes)
+
+1. `curl https://<api-domain>/api/health` → `{"status":"ok","db":true}`
+2. Storefront loads products, `/robots.txt`, `/sitemap.xml`,
+   `/opengraph-image` all render.
+3. Sign in with Clerk on the prod domain; place one real order end-to-end and
+   pay with a real method.
+4. Verify the webhook landed (Razorpay dashboard + a row in the
+   `payment_webhooks` audit table) and the partner split went
+   `ACCEPTED_BY_PARTNER`.
+5. Track the order by number on `/track`.
+
 ## Going live checklist
 
-Everything above runs on demo/simulated credentials. For production:
+Everything above runs on demo/simulated credentials. For production, walk
+through **Deploy** above, then verify:
 
 1. **Razorpay** — live `RAZORPAY_KEY_ID/SECRET` + real `RAZORPAY_WEBHOOK_SECRET`
    from the dashboard webhook config; point the webhook at
