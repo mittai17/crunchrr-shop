@@ -6,14 +6,20 @@ import {
   checkoutRequestSchema,
   checkoutResponseSchema,
   orderResponseSchema,
+  orderSummarySchema,
 } from "@crunchrr/shared";
+import { z } from "zod";
 import { env } from "../config/env.js";
-import { createCheckout, serializeOrder } from "../services/orders.js";
+import {
+  createCheckout,
+  serializeOrder,
+  serializeOrderByNumber,
+  listOrderSummariesByUser,
+} from "../services/orders.js";
 import { NotFoundError } from "../lib/errors.js";
 import { verifyClerkToken } from "../lib/auth.js";
 
-export async function orderRoutes(app: FastifyInstance): Promise<void> {
-  app.post(
+export async function orderRoutes(app: FastifyInstance): Promise<void> {  app.post(
     "/api/orders/checkout",
     {
       config: { rateLimit: { max: 20, timeWindow: "1 minute" } },
@@ -61,5 +67,40 @@ export async function orderRoutes(app: FastifyInstance): Promise<void> {
       throw new NotFoundError("Order", id);
     }
     return reply.send({ order: parsed.data });
+  });
+
+  /* Customer-friendly lookup by the human-readable order number (order tracking). */
+  app.get(
+    "/api/orders/number/:orderNumber",
+    { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
+    async (req, reply) => {
+      const { orderNumber } = req.params as { orderNumber: string };
+      const data = await serializeOrderByNumber(orderNumber);
+      const parsed = orderResponseSchema.safeParse(data);
+      if (!parsed.success) {
+        req.log.error({ issues: parsed.error.issues }, "order serialization mismatch");
+        throw new NotFoundError("Order", orderNumber);
+      }
+      return reply.send({ order: parsed.data });
+    },
+  );
+
+  /* Signed-in account feed: orders belonging to the Clerk user. */
+  app.get("/api/orders", { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } }, async (req, reply) => {
+    const auth = await verifyClerkToken(req);
+    if (!auth?.userId) {
+      return reply.status(401).send({
+        error: { code: "UNAUTHENTICATED", message: "Sign in to view your orders." },
+      });
+    }
+    const rows = await listOrderSummariesByUser(auth.userId);
+    const parsed = z.array(orderSummarySchema).safeParse(rows);
+    if (!parsed.success) {
+      req.log.error({ issues: parsed.error.issues }, "order summary serialization mismatch");
+      return reply.status(500).send({
+        error: { code: "SERIALIZATION", message: "Could not serialize orders." },
+      });
+    }
+    return reply.send({ orders: parsed.data });
   });
 }

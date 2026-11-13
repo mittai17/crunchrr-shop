@@ -251,12 +251,12 @@ export default function BagPage() {
             </div>
           ) : null}
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
             <Link href="/shop" className="btn-pill-coral">
               Continue Browsing
             </Link>
-            <Link href="/" className="btn-pill-ghost">
-              Back Home
+            <Link href={`/track?order=${encodeURIComponent(success.orderNumber)}`} className="btn-pill-ghost">
+              Track This Order
             </Link>
           </div>
         </div>

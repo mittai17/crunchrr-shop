@@ -15,6 +15,8 @@ const PROTOCOL_LINKS = [
   { href: "/manifesto#authenticity", label: "Authenticity Guarantee" },
   { href: "/manifesto#returns", label: "Returns & Exchanges" },
   { href: "/manifesto#concierge", label: "Client Concierge" },
+  { href: "/track", label: "Track Order" },
+  { href: "/account", label: "My Account" },
 ];
 
 export function SiteFooter() {

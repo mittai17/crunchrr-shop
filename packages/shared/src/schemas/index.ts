@@ -244,6 +244,19 @@ export const orderResponseSchema = z.object({
 });
 export type OrderResponse = z.infer<typeof orderResponseSchema>;
 
+/** Compact per-order shape for "my orders" lists. */
+export const orderSummarySchema = z.object({
+  id: z.string(),
+  orderNumber: z.string(),
+  status: z.enum(ORDER_STATUSES),
+  grandTotalMinor: z.number().int().nonnegative(),
+  currency: z.enum(["USD", "INR"]),
+  itemCount: z.number().int().positive(),
+  previewLine: z.string(),
+  createdAt: z.string(),
+});
+export type OrderSummary = z.infer<typeof orderSummarySchema>;
+
 /* ------------------------------------------------------------------ */
 /* Webhooks — Razorpay                                                 */
 /* ------------------------------------------------------------------ */

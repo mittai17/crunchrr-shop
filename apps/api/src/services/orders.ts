@@ -9,7 +9,7 @@
  *
  * Payment confirmation (webhook) triggers partner splitting & dispatch.
  */
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import {
   orderEvents,
@@ -489,6 +489,44 @@ export async function serializeOrder(orderId: string) {
     })),
     createdAt: order.createdAt.toISOString(),
   };
+}
+
+/** Order lookup by the human-readable order number (order tracking screen). */
+export async function serializeOrderByNumber(orderNumber: string) {
+  const db = getDb(env().DATABASE_URL);
+  const order = await db.query.orders.findFirst({
+    where: eq(orders.orderNumber, orderNumber.toUpperCase()),
+  });
+  if (!order) throw new NotFoundError("Order", orderNumber);
+  return serializeOrder(order.id);
+}
+
+/** Compact per-order summaries for the signed-in account feed. */
+export async function listOrderSummariesByUser(userId: string) {
+  const db = getDb(env().DATABASE_URL);
+  const rows = await db.query.orders.findMany({
+    where: eq(orders.userId, userId),
+    orderBy: [desc(orders.createdAt)],
+    limit: 50,
+    with: {
+      lines: true,
+    },
+  });
+  return rows.map((order) => {
+    const previewLine = order.lines[0]
+      ? `${order.lines[0].quantity}× ${order.lines[0].name}`
+      : "—";
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      grandTotalMinor: order.grandTotalMinor,
+      currency: order.currency as "USD" | "INR",
+      itemCount: order.lines.reduce((sum, l) => sum + l.quantity, 0),
+      previewLine,
+      createdAt: order.createdAt.toISOString(),
+    };
+  });
 }
 
 /** Health probe for the DB connection. */

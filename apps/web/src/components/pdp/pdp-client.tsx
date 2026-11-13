@@ -9,6 +9,7 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { Product } from "@crunchrr/shared";
 import { useCart } from "@/lib/cart";
+import { useWishlist } from "@/lib/wishlist";
 import { cn, formatUsd } from "@/lib/utils";
 import { ProductCustomizer } from "@/components/pdp/product-customizer";
 
@@ -22,11 +23,12 @@ const ACCORDIONS = [
 
 export function PdpClient({ product }: Props) {
   const add = useCart((s) => s.add);
+  const wishlistItems = useWishlist((s) => s.items);
+  const wishlistToggle = useWishlist((s) => s.toggle);
   const [activeImage, setActiveImage] = useState(0);
   const [openAcc, setOpenAcc] = useState<string | null>("specs");
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [wish, setWish] = useState(false);
   const [added, setAdded] = useState(false);
 
   /* Colorways = unique colorway groups; sizes from variants of that colorway */
@@ -70,6 +72,10 @@ export function PdpClient({ product }: Props) {
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2000);
   };
+
+  const wishActive = selectedVariant
+    ? wishlistItems.some((i) => i.sku === selectedVariant.sku)
+    : false;
 
   const ctaLabel = added
     ? "Added to Bag ✓"
@@ -391,17 +397,19 @@ export function PdpClient({ product }: Props) {
 
             <button
               type="button"
-              onClick={() => setWish((w) => !w)}
+              onClick={() => {
+                if (selectedVariant) wishlistToggle(product, selectedVariant);
+              }}
               aria-label="Toggle wishlist"
               className="order-2 ml-auto flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-muted text-charcoal transition-colors hover:bg-surface-subtle sm:order-3 sm:ml-0"
             >
               <span
                 className={cn(
-                  "material-symbols-outlined text-xl",
-                  wish ? "filled text-brand" : "text-charcoal-muted",
+                  "material-symbols-outlined text-xl transition-transform active:scale-125",
+                  wishActive ? "filled text-brand" : "text-charcoal-muted",
                 )}
               >
-                {wish ? "favorite" : "favorite_border"}
+                {wishActive ? "favorite" : "favorite_border"}
               </span>
             </button>
           </div>

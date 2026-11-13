@@ -31,6 +31,8 @@ type CartState = {
     variant: ProductVariant,
     options?: { quantity?: number },
   ) => void;
+  /** Add a pre-built display snapshot (wishlist → bag move). */
+  addFromSnapshot: (item: Omit<CartItem, "quantity">) => void;
   remove: (sku: string) => void;
   setQuantity: (sku: string, quantity: number) => void;
   setPromoCode: (code: string | null) => void;
@@ -77,6 +79,28 @@ export const useCart = create<CartState>()(
           return { ...state, items: [...state.items, item] };
         });
       },
+
+      addFromSnapshot: (item) =>
+        set((state) => {
+          const existing = state.items.find((i) => i.sku === item.sku);
+          if (existing) {
+            return {
+              ...state,
+              items: state.items.map((i) =>
+                i.sku === item.sku
+                  ? { ...i, quantity: Math.min(i.quantity + 1, Math.min(i.maxStock, 10)) }
+                  : i,
+              ),
+            };
+          }
+          return {
+            ...state,
+            items: [
+              ...state.items,
+              { ...item, quantity: Math.min(Math.max(item.maxStock, 1), 10) },
+            ],
+          };
+        }),
 
       remove: (sku) =>
         set((state) => ({

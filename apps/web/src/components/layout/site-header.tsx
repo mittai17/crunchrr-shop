@@ -8,7 +8,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { UserButton } from "@clerk/nextjs";
 import { useCart } from "@/lib/cart";
+import { useWishlist } from "@/lib/wishlist";
 import { CrunchrrLogo } from "@/components/brand/logo";
+import { SearchOverlay } from "@/components/layout/search-overlay";
 
 const NAV: Array<{ href: string; label: string; pulse?: boolean }> = [
   { href: "/shop", label: "Shop" },
@@ -20,16 +22,35 @@ const NAV: Array<{ href: string; label: string; pulse?: boolean }> = [
 
 export function SiteHeader() {
   const items = useCart((s) => s.items);
+  const wishItems = useWishlist((s) => s.items);
   const [count, setCount] = useState<number | null>(null);
+  const [wishCount, setWishCount] = useState<number | null>(null);
   const [active, setActive] = useState<string>("");
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  // Hydration-safe badge: render empty server-side, then live value.
+  // Hydration-safe badges: render empty server-side, then live values.
   useEffect(() => {
     setCount(items.reduce((sum, i) => sum + i.quantity, 0));
   }, [items]);
 
   useEffect(() => {
+    setWishCount(wishItems.length);
+  }, [wishItems]);
+
+  useEffect(() => {
     setActive(window.location.pathname);
+  }, []);
+
+  // ⌘K / Ctrl+K opens catalog search.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   return (
@@ -90,35 +111,48 @@ export function SiteHeader() {
           </div>
 
           <div className="flex items-center gap-4 lg:gap-6">
-            {/* Search */}
-            <div className="hidden items-center gap-2.5 rounded-full border border-neutral-200/80 bg-white/80 px-4 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all focus-within:border-charcoal/40 lg:flex">
+            {/* Search — desktop pill (opens ⌘K palette) */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search catalog"
+              className="hidden items-center gap-2.5 rounded-full border border-neutral-200/80 bg-white/80 px-4 py-2 text-left shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all hover:border-charcoal/40 lg:flex"
+            >
               <span className="material-symbols-outlined text-[17px] text-charcoal-light">
                 search
               </span>
-              <input
-                type="text"
-                placeholder="Search archive..."
-                aria-label="Search catalog"
-                className="w-36 bg-transparent text-xs font-normal text-charcoal outline-none placeholder:text-charcoal-light xl:w-44"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    const value = (e.target as HTMLInputElement).value.trim();
-                    window.location.href = `/shop${value ? `?search=${encodeURIComponent(value)}` : ""}`;
-                  }
-                }}
-              />
+              <span className="w-36 bg-transparent text-xs font-normal text-charcoal-light xl:w-44">
+                Search archive...
+              </span>
               <kbd className="hidden rounded bg-neutral-100 px-1.5 py-0.5 font-display text-[9px] font-medium tracking-wider text-charcoal-light xl:inline-block">
                 ⌘K
               </kbd>
-            </div>
+            </button>
+
+            {/* Search — mobile icon */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search catalog"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-charcoal-muted transition-all hover:border-neutral-200/60 hover:bg-white hover:text-charcoal lg:hidden"
+            >
+              <span className="material-symbols-outlined text-[20px]">search</span>
+            </button>
 
             {/* Wishlist */}
             <Link
-              href="/shop"
+              href="/wishlist"
               title="Saved Items"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-charcoal-muted transition-all hover:border-neutral-200/60 hover:bg-white hover:text-charcoal"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-charcoal-muted transition-all hover:border-neutral-200/60 hover:bg-white hover:text-charcoal"
             >
               <span className="material-symbols-outlined text-[20px]">favorite</span>
+              <span
+                className={`absolute -right-0.5 -top-0.5 min-w-[16px] rounded-full bg-charcoal px-1 py-px text-center font-display text-[9px] font-bold leading-3 text-white shadow-sm transition-opacity ${
+                  wishCount === null || wishCount === 0 ? "opacity-0" : "opacity-100"
+                }`}
+              >
+                {wishCount !== null && wishCount > 9 ? "9+" : wishCount ?? ""}
+              </span>
             </Link>
 
             {/* Bag */}
@@ -159,6 +193,7 @@ export function SiteHeader() {
           </div>
         </div>
       </header>
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }
