@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
+
+@layer base {
+  :root {
+    --brand: 244 91 80;
+    --charcoal: 18 18 18;
+    --canvas: 250 248 246;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-charcoal antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    @apply bg-brand text-white;
+  }
+
+  /* Hide scrollbar on horizontal rails */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Material Symbols (matches the mockup icon system)                   */
+/* ------------------------------------------------------------------ */
+
+.material-symbols-outlined {
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+  display: inline-block;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  direction: ltr;
+  font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings: "FILL" 1;
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared editorial primitives                                         */
+/* ------------------------------------------------------------------ */
+
+@layer components {
+  /* Micro label: uppercase Space Grotesk with industrial tracking */
+  .micro-label {
+    @apply font-display text-[10px] uppercase tracking-overline font-bold;
+  }
+
+  /* Section eyebrow with coral accent */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 font-display text-[11px] uppercase tracking-overline font-bold text-brand;
+  }
+
+  /* Primary pill CTA */
+  .btn-pill-primary {
+    @apply inline-flex items-center justify-center gap-3 rounded-full bg-charcoal text-white
+      font-display text-xs uppercase tracking-label font-bold px-7 py-3.5
+      transition-all duration-200 hover:bg-brand active:scale-[0.98];
+  }
+
+  /* Coral solid CTA */
+  .btn-pill-coral {
+    @apply inline-flex items-center justify-center gap-3 rounded-full bg-brand text-white
+      font-display text-xs uppercase tracking-label font-bold px-7 py-3.5
+      transition-all duration-200 hover:bg-brand-dark active:scale-[0.98];
+  }
+
+  /* Ghost pill */
+  .btn-pill-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border-[1.5px] border-charcoal
+      text-charcoal font-display text-xs uppercase tracking-label font-bold px-7 py-3.5
+      transition-all duration-200 hover:bg-charcoal hover:text-white;
+  }
+
+  /* Product card container */
+  .card-product {
+    @apply bg-white rounded-2xl border border-neutral-200/70 shadow-card
+      transition-all duration-300 hover:shadow-card-hover hover:border-neutral-300;
+  }
+
+  /* Sticky glass header backdrop */
+  .glass-bar {
+    @apply bg-canvas/90 backdrop-blur-xl border-b border-border-subtle;
+  }
+}

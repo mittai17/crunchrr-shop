@@ -1,0 +1,23 @@
+{
+  "name": "crunchrr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Crunchrr — high-performance multi-partner Print-on-Demand streetwear platform (Next.js + Fastify + Drizzle/Neon)",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:web": "pnpm --filter @crunchrr/web dev",
+    "dev:api": "pnpm --filter @crunchrr/api dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter @crunchrr/web build",
+    "build:api": "pnpm --filter @crunchrr/api build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "db:push": "pnpm --filter @crunchrr/api db:push",
+    "db:seed": "pnpm --filter @crunchrr/api db:seed",
+    "db:studio": "pnpm --filter @crunchrr/api db:studio"
+  }
+}
