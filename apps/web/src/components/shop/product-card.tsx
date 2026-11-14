@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { Product, ProductVariant } from "@crunchrr/shared";
 import { useCart } from "@/lib/cart";
+import { useWishlist } from "@/lib/wishlist";
 import { cn, formatUsd } from "@/lib/utils";
 
 const BADGE_TONES: Record<string, string> = {
@@ -29,12 +30,14 @@ type Props = {
 export function ProductCard({ product, variant, className }: Props) {
   const add = useCart((s) => s.add);
   const [added, setAdded] = useState(false);
-  const [wish, setWish] = useState(false);
+  const wishlistItems = useWishlist((s) => s.items);
+  const wishlistToggle = useWishlist((s) => s.toggle);
 
   const inStock = product.variants.filter((v) => v.stock > 0);
   const chosen = variant ?? inStock[0] ?? product.variants[0];
 
   if (!chosen) return null;
+  const wish = wishlistItems.some((i) => i.sku === chosen.sku);
 
   const image = product.images[0];
   const metaLabel = product.gsmLabel
@@ -77,7 +80,7 @@ export function ProductCard({ product, variant, className }: Props) {
             type="button"
             title="Save to Wishlist"
             aria-label="Save to wishlist"
-            onClick={() => setWish((w) => !w)}
+            onClick={() => wishlistToggle(product, chosen)}
             className={cn(
               "absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-white/90 shadow-sm backdrop-blur-md transition-colors hover:bg-white",
               wish ? "text-brand" : "text-charcoal hover:text-brand",

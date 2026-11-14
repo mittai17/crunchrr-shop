@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
-import { cn, formatUsd } from "@/lib/utils";
+import { cn, formatMoney } from "@/lib/utils";
 import type { OrderResponse } from "@crunchrr/shared";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
@@ -165,7 +165,7 @@ export default function TrackOrderPage() {
                     Total
                   </span>
                   <span className="font-display text-2xl font-bold text-charcoal">
-                    {formatUsd(order.totals.grandTotalMinor)}
+                    {formatMoney(order.totals.grandTotalMinor, order.totals.currency)}
                   </span>
                   <span className="block text-[11px] text-charcoal-muted">
                     {new Date(order.createdAt).toLocaleDateString(undefined, {

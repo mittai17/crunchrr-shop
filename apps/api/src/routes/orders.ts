@@ -19,6 +19,8 @@ import {
 import { NotFoundError } from "../lib/errors.js";
 import { verifyClerkToken } from "../lib/auth.js";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function orderRoutes(app: FastifyInstance): Promise<void> {  app.post(
     "/api/orders/checkout",
     {
@@ -60,6 +62,8 @@ export async function orderRoutes(app: FastifyInstance): Promise<void> {  app.po
 
   app.get("/api/orders/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
+    // Non-UUID ids (e.g. /api/orders/track) must 404 cleanly, never hit Postgres.
+    if (!UUID_RE.test(id)) throw new NotFoundError("Order", id);
     const data = await serializeOrder(id);
     const parsed = orderResponseSchema.safeParse(data);
     if (!parsed.success) {
