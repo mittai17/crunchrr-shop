@@ -153,7 +153,7 @@ export default function AdminOverviewPage() {
       <section className="grid gap-3 sm:grid-cols-3">
         <Link
           href="/admin/fulfillment"
-          className="flex items-center gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-charcoal/20"
+          className="card3d flex items-center gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card"
         >
           <span className="material-symbols-outlined text-xl text-brand">local_shipping</span>
           <div>
@@ -165,7 +165,7 @@ export default function AdminOverviewPage() {
         </Link>
         <Link
           href="/admin/zones"
-          className="flex items-center gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-charcoal/20"
+          className="card3d flex items-center gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card"
         >
           <span className="material-symbols-outlined text-xl text-brand">public</span>
           <div>
@@ -177,7 +177,7 @@ export default function AdminOverviewPage() {
         </Link>
         <Link
           href="/admin/webhooks"
-          className="flex items-center gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-charcoal/20"
+          className="card3d flex items-center gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card"
         >
           <span className="material-symbols-outlined text-xl text-brand">webhook</span>
           <div>

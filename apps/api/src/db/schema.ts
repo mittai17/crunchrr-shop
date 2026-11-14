@@ -434,6 +434,7 @@ export const adminActions = pgTable("admin_actions", {
 }, (t) => [index("admin_actions_created_idx").on(t.createdAt)]);
 
 /** Social Studio — one composer, many platforms (simulated until OAuth). */
+/** Social Studio posts. */
 export const socialPosts = pgTable("social_posts", {
   id: uuid("id").primaryKey().defaultRandom(),
   platform: text("platform").notNull(), // INSTAGRAM | TIKTOK | X | FACEBOOK | PINTEREST | YOUTUBE
@@ -448,9 +449,29 @@ export const socialPosts = pgTable("social_posts", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Paid campaign briefs managed alongside organic posts in the Studio.
+ *  Budgets are stored in base USD minor; publishing/ad spend is simulated
+ *  until the ad account is connected. */
+export const adsCampaigns = pgTable("ads_campaigns", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  platform: text("platform").notNull(), // same SOCIAL_PLATFORMS as posts
+  objective: text("objective").notNull().default("TRAFFIC"), // TRAFFIC | SALES | AWARENESS
+  /** Daily budget in USD minor. */
+  dailyBudgetMinor: bigint("daily_budget_minor", { mode: "number" }).notNull().default(0),
+  status: text("status").notNull().default("DRAFT"), // DRAFT | ACTIVE | PAUSED | COMPLETED
+  productSlug: text("product_slug"),
+  startAt: timestamp("start_at", { withTimezone: true }),
+  endAt: timestamp("end_at", { withTimezone: true }),
+  /** Simulated spend / impressions recorded by the demo adapter. */
+  metrics: jsonb("metrics"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type AdminUserRow = typeof adminUsers.$inferSelect;
 export type AdminActionRow = typeof adminActions.$inferSelect;
 export type SocialPostRow = typeof socialPosts.$inferSelect;
+export type AdsCampaignRow = typeof adsCampaigns.$inferSelect;
 
 export type ProductRow = typeof products.$inferSelect;
 export type ProductImageRow = typeof productImages.$inferSelect;

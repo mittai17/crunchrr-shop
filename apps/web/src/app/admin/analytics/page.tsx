@@ -5,6 +5,7 @@
  * bestsellers, 30-day USD-equivalent trend. Read-only, OWNER/OPS/SUPPORT.
  */
 import { useCallback, useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 import { useAdminApi } from "@/components/admin/chrome";
 import { ErrorNote, Spinner, Td, Th } from "@/components/admin/ui";
 import { formatMoney, formatUsd } from "@/lib/utils";
@@ -45,15 +46,15 @@ export default function AdminAnalyticsPage() {
       {data ? (
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <div className="rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+            <div className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
               <p className="font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">Revenue 30d (USD eq.)</p>
               <p className="mt-1 font-display text-2xl font-bold text-charcoal">{formatUsd(data.revenueUsd30d)}</p>
             </div>
-            <div className="rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+            <div className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
               <p className="font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">Avg order value</p>
               <p className="mt-1 font-display text-2xl font-bold text-charcoal">{formatUsd(data.aovUsd)}</p>
             </div>
-            <div className="rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+            <div className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
               <p className="font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">Best margin SKU</p>
               <p className="mt-1 truncate font-display text-base font-bold text-charcoal">
                 {data.margins[0] ? `${data.margins[0].sku.slice(0, 18)}…` : "—"}
@@ -62,7 +63,7 @@ export default function AdminAnalyticsPage() {
                 {data.margins[0] ? `+${formatUsd(data.margins[0].revenueMinor - data.margins[0].costMinor)} profit` : ""}
               </p>
             </div>
-            <div className="rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+            <div className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
               <p className="font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">Top country</p>
               <p className="mt-1 font-display text-2xl font-bold text-charcoal">
                 {data.byCountry[0]?.country ?? "—"}
@@ -73,25 +74,31 @@ export default function AdminAnalyticsPage() {
             </div>
           </div>
 
-          {/* 30-day revenue bars */}
-          <section className="rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
-            <h2 className="mb-3 font-display text-xs font-bold uppercase tracking-wider text-charcoal-light">
+          {/* 30-day revenue — true isometric extrusion */}
+          <section className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+            <h2 className="mb-1 font-display text-xs font-bold uppercase tracking-wider text-charcoal-light">
               Revenue · last 30 days (USD-equivalent)
             </h2>
-            <div className="flex h-36 items-stretch gap-[3px]">
-              {data.series30d.map((d) => (
-                <div key={d.date} className="group relative flex-1" title={`${d.date}: ${formatUsd(d.minorUsd)} · ${d.orders} orders`}>
-                  <div
-                    className="w-full rounded-t-sm bg-gradient-to-t from-brand/40 to-brand transition-colors group-hover:from-charcoal group-hover:to-charcoal"
-                    style={{ height: `${Math.max((d.minorUsd / max30) * 100, d.minorUsd > 0 ? 4 : 1)}%`, marginTop: `${100 - Math.max((d.minorUsd / max30) * 100, d.minorUsd > 0 ? 4 : 1)}%` }}
-                  />
-                </div>
-              ))}
+            <p className="mb-2 text-[10px] text-charcoal-light">Hover a column to spotlight that day.</p>
+            <div className="iso-stage flex h-64 items-center justify-center overflow-hidden">
+              <div className="iso-chart" style={{ width: "78%", height: "58%" }}>
+                {data.series30d.map((d) => {
+                  const h = Math.max((d.minorUsd / max30) * 100, d.minorUsd > 0 ? 7 : 2);
+                  return (
+                    <div
+                      key={d.date}
+                      className="iso-bar"
+                      style={{ "--h": `${h}%` } as CSSProperties}
+                      title={`${d.date}: ${formatUsd(d.minorUsd)} · ${d.orders} orders`}
+                    />
+                  );
+                })}
+              </div>
             </div>
           </section>
 
           {/* Vendor scorecards */}
-          <section className="overflow-x-auto rounded-2xl border border-neutral-200/60 bg-white shadow-card">
+          <section className="card3d overflow-x-auto rounded-2xl border border-neutral-200/60 bg-white shadow-card">
             <table className="w-full min-w-[640px]">
               <thead className="border-b border-neutral-100 bg-surface-muted/60">
                 <tr>
@@ -124,7 +131,7 @@ export default function AdminAnalyticsPage() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Margin per SKU */}
-            <section className="overflow-x-auto rounded-2xl border border-neutral-200/60 bg-white shadow-card">
+            <section className="card3d overflow-x-auto rounded-2xl border border-neutral-200/60 bg-white shadow-card">
               <h2 className="border-b border-neutral-100 bg-surface-muted/60 px-3 py-2 font-display text-xs font-bold uppercase tracking-wider text-charcoal-light">
                 Margin leaderboard (paid units)
               </h2>
@@ -160,7 +167,7 @@ export default function AdminAnalyticsPage() {
 
             {/* Bestsellers + countries */}
             <div className="space-y-4">
-              <section className="rounded-2xl border border-neutral-200/60 bg-white shadow-card">
+              <section className="card3d rounded-2xl border border-neutral-200/60 bg-white shadow-card">
                 <h2 className="border-b border-neutral-100 bg-surface-muted/60 px-3 py-2 font-display text-xs font-bold uppercase tracking-wider text-charcoal-light">
                   Bestsellers
                 </h2>
@@ -184,7 +191,7 @@ export default function AdminAnalyticsPage() {
                 </ul>
               </section>
 
-              <section className="rounded-2xl border border-neutral-200/60 bg-white shadow-card">
+              <section className="card3d rounded-2xl border border-neutral-200/60 bg-white shadow-card">
                 <h2 className="border-b border-neutral-100 bg-surface-muted/60 px-3 py-2 font-display text-xs font-bold uppercase tracking-wider text-charcoal-light">
                   Revenue by country
                 </h2>

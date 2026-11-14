@@ -37,6 +37,7 @@ import {
   productVariants,
   products,
   socialPosts,
+  adsCampaigns,
 } from "../db/schema.js";
 import { env } from "../config/env.js";
 import { logAdminAction, requireAdmin } from "../lib/admin-auth.js";
@@ -1513,5 +1514,143 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     await db.delete(socialPosts).where(eq(socialPosts.id, id));
     await logAdminAction(admin, "SOCIAL_DELETE", `${post.platform} post`, {});
     return { ok: true };
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* v3 — Ads manager, inventory, customers                            */
+  /* ---------------------------------------------------------------- */
+
+  /** Ads — campaign briefs (spend simulated until the ad account is connected). */
+  app.get("/api/admin/ads", async (req) => {
+    await requireAdmin(req);
+    const db = getDb(env().DATABASE_URL);
+    const rows = await db.select().from(adsCampaigns).orderBy(desc(adsCampaigns.createdAt)).limit(100);
+    return { campaigns: rows, platforms: SOCIAL_PLATFORMS };
+  });
+
+  app.post("/api/admin/ads", async (req) => {
+    const admin = await requireAdmin(req, ["OWNER", "OPS"]);
+    const body = z
+      .object({
+        name: z.string().min(2).max(120),
+        platform: z.enum(SOCIAL_PLATFORMS),
+        objective: z.enum(["TRAFFIC", "SALES", "AWARENESS"]).default("TRAFFIC"),
+        dailyBudgetUsd: z.number().min(0).max(10_000),
+        productSlug: z.string().max(120).optional(),
+        startAt: z.string().datetime().optional(),
+        endAt: z.string().datetime().optional(),
+      })
+      .parse(req.body);
+    const db = getDb(env().DATABASE_URL);
+    const [campaign] = await db
+      .insert(adsCampaigns)
+      .values({
+        name: body.name.trim(),
+        platform: body.platform,
+        objective: body.objective,
+        dailyBudgetMinor: Math.round(body.dailyBudgetUsd * 100),
+        productSlug: body.productSlug ?? null,
+        startAt: body.startAt ? new Date(body.startAt) : null,
+        endAt: body.endAt ? new Date(body.endAt) : null,
+      })
+      .returning();
+    await logAdminAction(admin, "ADS_CREATE", `${body.platform} · ${body.name}`, { dailyBudgetUsd: body.dailyBudgetUsd });
+    return { ok: true, campaign };
+  });
+
+  app.patch("/api/admin/ads/:id", async (req) => {
+    const admin = await requireAdmin(req, ["OWNER", "OPS"]);
+    const { id } = req.params as { id: string };
+    const body = z
+      .object({
+        status: z.enum(["DRAFT", "ACTIVE", "PAUSED", "COMPLETED"]).optional(),
+        dailyBudgetUsd: z.number().min(0).max(10_000).optional(),
+      })
+      .parse(req.body);
+    const db = getDb(env().DATABASE_URL);
+    const updates: Record<string, unknown> = {};
+    if (body.status) updates.status = body.status;
+    if (body.dailyBudgetUsd !== undefined) updates.dailyBudgetMinor = Math.round(body.dailyBudgetUsd * 100);
+    const [campaign] = await db.update(adsCampaigns).set(updates).where(eq(adsCampaigns.id, id)).returning();
+    if (!campaign) throw new NotFoundError("Campaign", id);
+    await logAdminAction(admin, "ADS_UPDATE", `${campaign.platform} · ${campaign.name}`, updates);
+    return { ok: true, campaign };
+  });
+
+  /** Inventory — every SKU with stock, price, vendor. */
+  app.get("/api/admin/variants", async (req) => {
+    await requireAdmin(req);
+    const db = getDb(env().DATABASE_URL);
+    const q = (req.query as { q?: string; lowStock?: string }).q;
+    const lowStock = (req.query as { lowStock?: string }).lowStock === "true";
+    const threshold = Number((req.query as { threshold?: string }).threshold ?? 5);
+
+    const rows = await db
+      .select({
+        id: productVariants.id,
+        sku: productVariants.sku,
+        productName: products.name,
+        colorway: productVariants.colorway,
+        size: productVariants.size,
+        stock: productVariants.stock,
+        priceMinor: productVariants.priceMinor,
+        partnerId: productVariants.partnerId,
+        active: productVariants.active,
+      })
+      .from(productVariants)
+      .innerJoin(products, eq(productVariants.productId, products.id))
+      .orderBy(productVariants.sku)
+      .limit(600);
+
+    let out = rows;
+    if (q && q.trim()) {
+      const needle = q.trim().toLowerCase();
+      out = out.filter(
+        (r) => r.sku.toLowerCase().includes(needle) || r.productName.toLowerCase().includes(needle) || r.colorway.toLowerCase().includes(needle),
+      );
+    }
+    if (lowStock) out = out.filter((r) => r.stock <= threshold);
+    const totalStock = rows.reduce((sum, r) => sum + r.stock, 0);
+    const lowCount = rows.filter((r) => r.stock <= 5).length;
+    const outOfStock = rows.filter((r) => r.stock === 0).length;
+    return { variants: out, stats: { skus: rows.length, totalStock, lowCount, outOfStock } };
+  });
+
+  /** Customers — grouped by email, LTV fx-normalized to USD minor. */
+  app.get("/api/admin/customers", async (req) => {
+    await requireAdmin(req);
+    const db = getDb(env().DATABASE_URL);
+    const rows = await db
+      .select({
+        email: orders.email,
+        name: sql<string>`min(${orders.customerName})`,
+        orders: sql<number>`count(*)::int`,
+        grandMinor: sql<number>`sum(${orders.grandTotalMinor})::int`,
+        currency: sql<string>`min(${orders.currency})`,
+        country: sql<string>`min(${orders.shipCountry})`,
+        firstAt: sql<string>`min(${orders.createdAt})`,
+        lastAt: sql<string>`max(${orders.createdAt})`,
+      })
+      .from(orders)
+      .groupBy(orders.email)
+      .orderBy(desc(sql`count(*)`))
+      .limit(200);
+
+    const zones = await listZones({ activeOnly: true });
+    const fx = new Map<string, number>();
+    for (const zone of zones) if (!fx.has(zone.currency)) fx.set(zone.currency, zone.fxFromUsd);
+
+    const customers = rows.map((r) => ({
+      email: r.email,
+      name: r.name,
+      orders: r.orders,
+      grandMinor: r.grandMinor,
+      currency: r.currency,
+      country: r.country,
+      firstAt: r.firstAt,
+      lastAt: r.lastAt,
+      ltvUsd: Math.round(r.grandMinor / (fx.get(r.currency) ?? 1)),
+    }));
+    return { customers };
   });
 }

@@ -315,6 +315,17 @@ export async function confirmPaymentAndDispatch(args: {
       kind: "PAYMENT_CONFIRMED",
       detail: { provider: args.provider, paymentRef: args.paymentRef },
     });
+
+    // Reserve stock exactly once (this block only runs on the first confirm —
+    // webhook replays short-circuit above). Clamped at zero so a race can
+    // never push stock negative.
+    const paidLines = await db.select().from(orderLines).where(eq(orderLines.orderId, order.id));
+    for (const line of paidLines) {
+      await db
+        .update(productVariants)
+        .set({ stock: sql`greatest(${productVariants.stock} - ${line.quantity}, 0)` })
+        .where(eq(productVariants.sku, line.sku));
+    }
   }
 
   /* ---- Auto-routing: hand IN_HOUSE lines to the best regional partner ---- */
