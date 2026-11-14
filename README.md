@@ -74,6 +74,7 @@ Health check: `curl localhost:4001/api/health` → `{"ok":true,"db":true}`
 | POST | `/api/webhooks/razorpay` | Razorpay webhook (HMAC-SHA256 signature gate) |
 | POST | `/api/webhooks/cashfree` | Cashfree webhook (SDK signature verification) |
 | POST | `/api/orders/demo-confirm` | **Dev/demo only** — simulates a paid webhook, gated by `FORCE_DEMO_PAYMENTS` |
+| * | `/api/admin/*` | Admin control plane (Clerk-gated, allowlisted users — see Admin panel section) |
 
 ## Demo payment flow (no gateway account needed)
 
@@ -90,6 +91,57 @@ payment confirmed → order marked PAYMENT_CONFIRMED
 ```
 
 Idempotency: confirmations are safe to replay — repeat calls are no-ops.
+
+## Admin panel (`/admin`)
+
+Clerk-gated control plane for the shop — `requireAdmin` checks the session's
+Clerk user id against `ADMIN_CLERK_USER_IDS` (add your Clerk user id there; in
+development only, `ADMIN_DEV_BYPASS=true` skips the check).
+
+| Page | What it does |
+| --- | --- |
+| Overview | KPIs (multi-currency revenue), 7-day USD-equivalent bars, low-stock watchlist |
+| Orders | Search/status tabs, multi-currency totals; detail view with pieces, vendor routing, audit trail |
+| Fulfillment | Per-split dispatch / re-dispatch / mark shipped (optional tracking #) / delivered |
+| Products | Catalog list + editor: copy, variant matrix, per-variant vendor routing |
+| Partners | 11 POD vendors: credential editing (masked), live TEST ping, per-vendor split stats |
+| Countries | 19 shipping zones — currency, FX from USD, fees, free-ship threshold, tax, on/off |
+| Promos | DB-driven percent-off codes with usage counts |
+| Webhooks | Persist-first webhook audit with payload inspection |
+
+### Multi-vendor partners
+
+India/Tamil Nadu first, then the global (US/UK) platforms:
+
+| Vendor | Base | Adapter |
+| --- | --- | --- |
+| Printrove | Coimbatore, Tamil Nadu | live (email → JWT → order push) |
+| Inkmonk | Chennai, Tamil Nadu | rostered (simulated) |
+| Qikink | Tirupati — TN/AP corridor | live (client_id + secret) |
+| Blinkstore | Mumbai, India | rostered (simulated) |
+| Printful | Charlotte, NC + UK/EU | rostered (simulated) |
+| Printify | San Francisco, US/UK facilities | rostered (simulated) |
+| Gelato | US/UK/EU lanes | rostered (simulated) |
+| Contrado | London, England | rostered (simulated) |
+| Inkthreadable | Lancashire, England | rostered (simulated) |
+| Gooten | New York, USA | rostered (simulated) |
+| In-House | own depot | manual |
+
+Live adapters read credentials from the DB row (admin-editable) or env vars;
+unconfigured partners dispatch in **simulation mode** so the fulfillment
+pipeline keeps moving. Adding a live integration = one adapter file + one
+registry row (`apps/api/src/services/partners/`).
+
+### Multi-country money
+
+Catalog prices live in **base USD minor units**. At checkout the zone row
+converts every line (`fxFromUsd`), and fees, free-shipping thresholds and tax
+are all in the **zone's own currency minor units**. Zones shipped:
+US · India · UK · Germany · France · Netherlands · Italy · Spain · Ireland ·
+UAE · Saudi Arabia · Australia · Canada · Singapore · Malaysia · Hong Kong ·
+Mexico · Brazil · South Africa. Add more from the Countries page (JPY/KRW-style
+zero-decimal currencies are deliberately excluded — the money engine assumes
+2-decimal minor units).
 
 ## Webhook security model
 

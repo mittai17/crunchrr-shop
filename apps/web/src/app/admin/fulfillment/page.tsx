@@ -26,6 +26,8 @@ export default function AdminFulfillmentPage() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("ALL");
   const [busyId, setBusyId] = useState<string | null>(null);
+  /** Optional tracking code captured per split before "mark shipped". */
+  const [trackDraft, setTrackDraft] = useState<Record<string, string>>({});
 
   const load = useCallback(() => {
     const params = new URLSearchParams();
@@ -57,7 +59,12 @@ export default function AdminFulfillmentPage() {
     setBusyId(id);
     setError(null);
     try {
-      await api.patch(`/api/admin/splits/${id}/status`, { status: next });
+      const trackingCode = trackDraft[id]?.trim();
+      await api.patch(`/api/admin/splits/${id}/status`, {
+        status: next,
+        ...(trackingCode ? { trackingCode } : {}),
+      });
+      setTrackDraft((d) => ({ ...d, [id]: "" }));
       load();
     } catch (e) {
       setError((e as Error).message);
@@ -163,9 +170,19 @@ export default function AdminFulfillmentPage() {
                           </AdminButton>
                         ) : null}
                         {s.status === "ACCEPTED_BY_PARTNER" || s.status === "SENT_TO_PARTNER" ? (
-                          <AdminButton disabled={busyId === s.id} onClick={() => void markStatus(s.id, "SHIPPED")}>
-                            Mark shipped
-                          </AdminButton>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              value={trackDraft[s.id] ?? ""}
+                              onChange={(e) => setTrackDraft((d) => ({ ...d, [s.id]: e.target.value }))}
+                              placeholder="Tracking #"
+                              aria-label="Tracking code"
+                              maxLength={100}
+                              className="w-24 rounded-full border border-neutral-200/80 bg-white px-2 py-1 text-[10px] text-charcoal placeholder:text-neutral-400 focus:border-brand focus:outline-none"
+                            />
+                            <AdminButton disabled={busyId === s.id} onClick={() => void markStatus(s.id, "SHIPPED")}>
+                              Mark shipped
+                            </AdminButton>
+                          </div>
                         ) : null}
                         {s.status === "SHIPPED" ? (
                           <AdminButton disabled={busyId === s.id} onClick={() => void markStatus(s.id, "DELIVERED")}>

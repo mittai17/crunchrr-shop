@@ -21,6 +21,9 @@ export const PARTNER_IDS = [
   "PRINTFUL",
   "PRINTIFY",
   "GELATO",
+  "CONTRADO",
+  "INKTHREADABLE",
+  "GOOTEN",
   "IN_HOUSE",
 ] as const;
 export type PartnerId = (typeof PARTNER_IDS)[number];
@@ -77,6 +80,12 @@ export const CURRENCY_CODES = [
   "AUD",
   "CAD",
   "SGD",
+  "SAR",
+  "MXN",
+  "BRL",
+  "ZAR",
+  "MYR",
+  "HKD",
 ] as const;
 export const CURRENCY = z.enum(CURRENCY_CODES);
 export type Currency = (typeof CURRENCY_CODES)[number];
@@ -91,6 +100,12 @@ export const CURRENCY_DECIMALS: Record<Currency, 2> = {
   AUD: 2,
   CAD: 2,
   SGD: 2,
+  SAR: 2,
+  MXN: 2,
+  BRL: 2,
+  ZAR: 2,
+  MYR: 2,
+  HKD: 2,
 };
 
 /** Display symbols for checkout + admin surfaces. */
@@ -103,6 +118,12 @@ export const CURRENCY_SYMBOLS: Record<Currency, string> = {
   AUD: "A$",
   CAD: "C$",
   SGD: "S$",
+  SAR: "SAR ",
+  MXN: "MX$",
+  BRL: "R$",
+  ZAR: "R",
+  MYR: "RM",
+  HKD: "HK$",
 };
 
 /* ------------------------------------------------------------------ */

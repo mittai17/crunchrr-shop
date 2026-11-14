@@ -15,6 +15,9 @@ adapters.set("BLINKSTORE", new GenericPodAdapter("BLINKSTORE"));
 adapters.set("PRINTFUL", new GenericPodAdapter("PRINTFUL"));
 adapters.set("PRINTIFY", new GenericPodAdapter("PRINTIFY"));
 adapters.set("GELATO", new GenericPodAdapter("GELATO"));
+adapters.set("CONTRADO", new GenericPodAdapter("CONTRADO"));
+adapters.set("INKTHREADABLE", new GenericPodAdapter("INKTHREADABLE"));
+adapters.set("GOOTEN", new GenericPodAdapter("GOOTEN"));
 
 /** IN_HOUSE is manual fulfillment; adapter-less until ops tooling lands. */
 export function getPartnerAdapter(partnerId: string): PartnerAdapter | null {

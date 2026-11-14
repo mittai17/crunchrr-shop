@@ -813,6 +813,21 @@ async function main() {
       authHint: "not configured — simulated dispatch",
     },
     {
+      partnerId: "CONTRADO",
+      apiBaseUrl: "https://api.contrado.com",
+      authHint: "not configured — simulated dispatch",
+    },
+    {
+      partnerId: "INKTHREADABLE",
+      apiBaseUrl: "https://api.inkthreadable.co.uk",
+      authHint: "not configured — simulated dispatch",
+    },
+    {
+      partnerId: "GOOTEN",
+      apiBaseUrl: "https://api.gooten.com",
+      authHint: "not configured — simulated dispatch",
+    },
+    {
       partnerId: "IN_HOUSE",
       apiBaseUrl: "https://ops.crunchrr.internal",
       authHint: "manual fulfillment",
@@ -845,6 +860,26 @@ async function main() {
         shippingFeeMinor: 1300, priorityFeeMinor: 4000, freeThresholdMinor: 6500, taxBps: 1300, sortOrder: 80 },
       { countryCode: "SG", countryName: "Singapore", currency: "SGD", fxFromUsd: "1.34",
         shippingFeeMinor: 1200, priorityFeeMinor: 3500, freeThresholdMinor: 6000, taxBps: 900, sortOrder: 90 },
+      { countryCode: "SA", countryName: "Saudi Arabia", currency: "SAR", fxFromUsd: "3.75",
+        shippingFeeMinor: 5000, priorityFeeMinor: 15000, freeThresholdMinor: 28000, taxBps: 1500, sortOrder: 100 },
+      { countryCode: "NL", countryName: "Netherlands", currency: "EUR", fxFromUsd: "0.92",
+        shippingFeeMinor: 1000, priorityFeeMinor: 3000, freeThresholdMinor: 6000, taxBps: 2100, sortOrder: 110 },
+      { countryCode: "IT", countryName: "Italy", currency: "EUR", fxFromUsd: "0.92",
+        shippingFeeMinor: 1000, priorityFeeMinor: 3000, freeThresholdMinor: 6000, taxBps: 2200, sortOrder: 120 },
+      { countryCode: "ES", countryName: "Spain", currency: "EUR", fxFromUsd: "0.92",
+        shippingFeeMinor: 1000, priorityFeeMinor: 3000, freeThresholdMinor: 6000, taxBps: 2100, sortOrder: 130 },
+      { countryCode: "IE", countryName: "Ireland", currency: "EUR", fxFromUsd: "0.92",
+        shippingFeeMinor: 1100, priorityFeeMinor: 3200, freeThresholdMinor: 6200, taxBps: 2300, sortOrder: 140 },
+      { countryCode: "MY", countryName: "Malaysia", currency: "MYR", fxFromUsd: "4.7",
+        shippingFeeMinor: 6000, priorityFeeMinor: 15000, freeThresholdMinor: 35000, taxBps: 1000, sortOrder: 150 },
+      { countryCode: "HK", countryName: "Hong Kong", currency: "HKD", fxFromUsd: "7.8",
+        shippingFeeMinor: 9000, priorityFeeMinor: 25000, freeThresholdMinor: 58000, taxBps: 0, sortOrder: 160 },
+      { countryCode: "MX", countryName: "Mexico", currency: "MXN", fxFromUsd: "17.1",
+        shippingFeeMinor: 20000, priorityFeeMinor: 51000, freeThresholdMinor: 128000, taxBps: 1600, sortOrder: 170 },
+      { countryCode: "BR", countryName: "Brazil", currency: "BRL", fxFromUsd: "5.1",
+        shippingFeeMinor: 6100, priorityFeeMinor: 15300, freeThresholdMinor: 38000, taxBps: 1700, sortOrder: 180 },
+      { countryCode: "ZA", countryName: "South Africa", currency: "ZAR", fxFromUsd: "18",
+        shippingFeeMinor: 12000, priorityFeeMinor: 40000, freeThresholdMinor: 135000, taxBps: 1500, sortOrder: 190 },
     ])
     .onConflictDoNothing();
 

@@ -130,4 +130,4 @@ export type WebhookList = {
 export type ZoneList = { zones: Zone[] };
 export type PromoList = { promos: Promo[] };
 export type { Zone, Promo, AdminPartner };
-export { PARTNER_IDS } from "@crunchrr/shared";
+export { PARTNER_IDS, CURRENCY_CODES } from "@crunchrr/shared";

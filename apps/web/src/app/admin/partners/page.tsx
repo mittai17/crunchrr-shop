@@ -38,6 +38,18 @@ const PARTNER_META: Record<string, { desc: string; docs: string }> = {
     desc: "Gelato — local production in 30+ countries; strongest US/UK lane latency. Simulated dispatch.",
     docs: "https://gelato.com",
   },
+  CONTRADO: {
+    desc: "Contrado — London, England. Premium UK-made apparel & accessories; live adapter pending, simulated dispatch.",
+    docs: "https://contrado.com",
+  },
+  INKTHREADABLE: {
+    desc: "Inkthreadable — Lancashire, England. Carbon-neutral UK POD; live adapter pending, simulated dispatch.",
+    docs: "https://inkthreadable.co.uk",
+  },
+  GOOTEN: {
+    desc: "Gooten — New York, USA. API-first POD network with UK print partners. Simulated dispatch.",
+    docs: "https://gooten.com",
+  },
   IN_HOUSE: { desc: "Manual fulfillment. No adapter — dispatch is a human step.", docs: "" },
 };
 

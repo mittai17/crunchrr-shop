@@ -53,6 +53,27 @@ export const PARTNER_META: Record<
     baseUrl: "https://order.gelato.com",
     note: "Local production in 30+ countries; strongest US/UK lane latency.",
   },
+  CONTRADO: {
+    label: "Contrado",
+    hq: "London, England",
+    region: "UK/EU",
+    baseUrl: "https://api.contrado.com",
+    note: "London print facility — premium UK-made apparel & accessories.",
+  },
+  INKTHREADABLE: {
+    label: "Inkthreadable",
+    hq: "Lancashire, England",
+    region: "UK",
+    baseUrl: "https://api.inkthreadable.co.uk",
+    note: "England-based POD with carbon-neutral UK production.",
+  },
+  GOOTEN: {
+    label: "Gooten",
+    hq: "New York, USA",
+    region: "US/UK",
+    baseUrl: "https://api.gooten.com",
+    note: "US API-first POD network with UK print partners.",
+  },
 };
 
 export class GenericPodAdapter implements PartnerAdapter {

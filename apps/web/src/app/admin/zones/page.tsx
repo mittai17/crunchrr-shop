@@ -8,9 +8,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useAdminApi } from "@/components/admin/chrome";
 import { AdminButton, ErrorNote, Field, inputCls, Spinner, StatusChip, Td, Th } from "@/components/admin/ui";
 import { formatMoney } from "@/lib/utils";
+import { PARTNER_IDS, CURRENCY_CODES } from "@/lib/admin-client";
 import type { Zone, ZoneList } from "@/lib/admin-client";
 
-const CURRENCIES = ["USD", "INR", "GBP", "EUR", "AED", "AUD", "CAD", "SGD"] as const;
+const CURRENCIES = CURRENCY_CODES;
 
 export default function AdminZonesPage() {
   const api = useAdminApi();

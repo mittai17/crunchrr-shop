@@ -43,6 +43,9 @@ export const partnerIdEnum = pgEnum("partner_id", [
   "PRINTFUL",
   "PRINTIFY",
   "GELATO",
+  "CONTRADO",
+  "INKTHREADABLE",
+  "GOOTEN",
   "IN_HOUSE",
 ]);
 
