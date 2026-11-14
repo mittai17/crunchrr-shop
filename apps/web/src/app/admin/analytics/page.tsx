@@ -2,7 +2,8 @@
 
 /**
  * Analytics — vendor scorecards, margin per SKU, revenue by country,
- * bestsellers, 30-day USD-equivalent trend. Read-only, OWNER/OPS/SUPPORT.
+ * bestsellers, USD-equivalent trend. Range switch (7/30/90 days) is
+ * server-side so every table reflects the same window.
  */
 import { useCallback, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
@@ -15,18 +16,22 @@ export default function AdminAnalyticsPage() {
   const api = useAdminApi();
   const [data, setData] = useState<Analytics | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [days, setDays] = useState<7 | 30 | 90>(30);
+  const [loading, setLoading] = useState(false);
 
   const load = useCallback(() => {
+    setLoading(true);
     void api
-      .get<Analytics>("/api/admin/analytics")
+      .get<Analytics>(`/api/admin/analytics?days=${days}`)
       .then(setData)
-      .catch((e: Error) => setError(e.message));
-  }, [api]);
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [api, days]);
   useEffect(() => {
     load();
   }, [load]);
 
-  const max30 = Math.max(...(data?.series30d.map((d) => d.minorUsd) ?? [1]), 1);
+  const maxUsd = Math.max(...(data?.series.map((d) => d.minorUsd) ?? [1]), 1);
 
   return (
     <div className="space-y-5">
@@ -37,7 +42,28 @@ export default function AdminAnalyticsPage() {
             Business Intelligence
           </span>
         </div>
-        <h1 className="font-display text-3xl font-bold tracking-tight text-charcoal">Analytics</h1>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-charcoal">Analytics</h1>
+          <div className="flex items-center gap-1 rounded-full border border-neutral-200 bg-white p-1">
+            {([7, 30, 90] as const).map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDays(d)}
+                className={`rounded-full px-3 py-1 font-display text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                  days === d ? "bg-charcoal text-canvas" : "text-charcoal-light hover:bg-surface-muted"
+                }`}
+              >
+                {d}d
+              </button>
+            ))}
+            {loading ? (
+              <span className="material-symbols-outlined animate-spin px-1 text-sm text-charcoal-light">
+                progress_activity
+              </span>
+            ) : null}
+          </div>
+        </div>
       </header>
 
       {error ? <ErrorNote message={error} /> : null}
@@ -47,8 +73,10 @@ export default function AdminAnalyticsPage() {
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <div className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
-              <p className="font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">Revenue 30d (USD eq.)</p>
-              <p className="mt-1 font-display text-2xl font-bold text-charcoal">{formatUsd(data.revenueUsd30d)}</p>
+              <p className="font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">
+                Revenue · {data.days}d (USD eq.)
+              </p>
+              <p className="mt-1 font-display text-2xl font-bold text-charcoal">{formatUsd(data.revenueUsd)}</p>
             </div>
             <div className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
               <p className="font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">Avg order value</p>
@@ -77,13 +105,13 @@ export default function AdminAnalyticsPage() {
           {/* 30-day revenue — true isometric extrusion */}
           <section className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
             <h2 className="mb-1 font-display text-xs font-bold uppercase tracking-wider text-charcoal-light">
-              Revenue · last 30 days (USD-equivalent)
+              Revenue · last {data.days} days (USD-equivalent)
             </h2>
             <p className="mb-2 text-[10px] text-charcoal-light">Hover a column to spotlight that day.</p>
             <div className="iso-stage flex h-64 items-center justify-center overflow-hidden">
               <div className="iso-chart" style={{ width: "78%", height: "58%" }}>
-                {data.series30d.map((d) => {
-                  const h = Math.max((d.minorUsd / max30) * 100, d.minorUsd > 0 ? 7 : 2);
+                {data.series.map((d) => {
+                  const h = Math.max((d.minorUsd / maxUsd) * 100, d.minorUsd > 0 ? 7 : 2);
                   return (
                     <div
                       key={d.date}

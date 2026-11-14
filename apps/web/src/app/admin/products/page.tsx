@@ -19,6 +19,12 @@ export default function AdminProductsPage() {
   const [q, setQ] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  /* Deep link support: /admin/products?q=… from the command palette. */
+  useEffect(() => {
+    const initial = new URLSearchParams(window.location.search).get("q");
+    if (initial) setQ(initial);
+  }, []);
+
   const load = useCallback(() => {
     void api
       .get<{ products: AdminProductRow[] }>(`/api/admin/products${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`)

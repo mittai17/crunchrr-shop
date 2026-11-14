@@ -44,6 +44,12 @@ export default function AdminCustomersPage() {
     load();
   }, [load]);
 
+  /* Deep link support: /admin/customers?q=email from the command palette. */
+  useEffect(() => {
+    const initial = new URLSearchParams(window.location.search).get("q");
+    if (initial) setQ(initial);
+  }, []);
+
   const filtered = (rows ?? []).filter((r) =>
     q ? r.email.toLowerCase().includes(q.toLowerCase()) || r.name.toLowerCase().includes(q.toLowerCase()) : true,
   );

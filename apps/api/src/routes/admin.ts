@@ -850,6 +850,9 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     await requireAdmin(req);
     const db = getDb(env().DATABASE_URL);
     const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 3600 * 1000);
+    const requested = Number((req.query as { days?: string }).days ?? 30);
+    const days = [7, 30, 90].includes(requested) ? requested : 30;
+    const rangeStart = daysAgo(days);
 
     // Bestsellers — units sold across paid orders (revenue fx-normalized to USD).
     const bestsellerRows = await db
@@ -863,7 +866,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       })
       .from(orderLines)
       .innerJoin(orders, eq(orderLines.orderId, orders.id))
-      .where(inArray(orders.status, PAID_STATUSES))
+      .where(and(inArray(orders.status, PAID_STATUSES), gte(orders.createdAt, rangeStart)))
       .groupBy(orderLines.sku, orderLines.name, orderLines.colorway, orders.currency);
 
     const zonesForFx = await listZones({ activeOnly: true });
@@ -896,6 +899,8 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         rejected: sql<number>`(count(*) filter (where ${orderSplits.status} = 'REJECTED_BY_PARTNER'))::int`,
       })
       .from(orderSplits)
+      .innerJoin(orders, eq(orderSplits.orderId, orders.id))
+      .where(gte(orders.createdAt, rangeStart))
       .groupBy(orderSplits.partnerId);
 
     const acceptRows = await db
@@ -922,7 +927,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       })
       .from(orderLines)
       .innerJoin(orders, eq(orderLines.orderId, orders.id))
-      .where(inArray(orders.status, PAID_STATUSES))
+      .where(and(inArray(orders.status, PAID_STATUSES), gte(orders.createdAt, rangeStart)))
       .groupBy(orderLines.sku, orderLines.name, orderLines.colorway, orders.currency);
 
     const marginMap = new Map<string, { sku: string; name: string; colorway: string; units: number; revenueUsd: number; costMinor: number }>();
@@ -955,11 +960,11 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         count: sql<number>`count(*)::int`,
       })
       .from(orders)
-      .where(inArray(orders.status, PAID_STATUSES))
+      .where(and(inArray(orders.status, PAID_STATUSES), gte(orders.createdAt, rangeStart)))
       .groupBy(orders.shipCountry, orders.currency)
       .orderBy(desc(sql`sum(${orders.grandTotalMinor})`));
 
-    // 30-day USD-equivalent daily series (same fx trick as overview).
+    // USD-equivalent daily series for the selected range (same fx trick as overview).
     const seriesRows = await db
       .select({
         day: sql<string>`to_char(date_trunc('day', ${orders.createdAt}), 'YYYY-MM-DD')`,
@@ -968,7 +973,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         count: sql<number>`count(*)::int`,
       })
       .from(orders)
-      .where(inArray(orders.status, PAID_STATUSES))
+      .where(and(inArray(orders.status, PAID_STATUSES), gte(orders.createdAt, rangeStart)))
       .groupBy(sql`date_trunc('day', ${orders.createdAt})`, orders.currency)
       .orderBy(sql`date_trunc('day', ${orders.createdAt})`);
     const zones = await listZones({ activeOnly: true });
@@ -977,7 +982,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       if (!fxByCurrency.has(zone.currency)) fxByCurrency.set(zone.currency, zone.fxFromUsd);
     }
     const seriesByDay = new Map<string, { minorUsd: number; orders: number }>();
-    for (let i = 29; i >= 0; i--) {
+    for (let i = days - 1; i >= 0; i--) {
       seriesByDay.set(daysAgo(i).toISOString().slice(0, 10), { minorUsd: 0, orders: 0 });
     }
     for (const row of seriesRows) {
@@ -987,10 +992,10 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       bucket.minorUsd += Math.round(row.minor / (fx || 1));
       bucket.orders += row.count;
     }
-    const series30d = [...seriesByDay.entries()].map(([date, v]) => ({ date, ...v }));
-    const totalUsd = series30d.reduce((s, d) => s + d.minorUsd, 0);
-    const totalOrders30d = series30d.reduce((s, d) => s + d.orders, 0);
-    const aovUsd = totalOrders30d > 0 ? Math.round(totalUsd / totalOrders30d) : 0;
+    const series = [...seriesByDay.entries()].map(([date, v]) => ({ date, ...v }));
+    const totalUsd = series.reduce((s, d) => s + d.minorUsd, 0);
+    const totalOrders = series.reduce((s, d) => s + d.orders, 0);
+    const aovUsd = totalOrders > 0 ? Math.round(totalUsd / totalOrders) : 0;
 
     return {
       bestsellers,
@@ -1000,9 +1005,10 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       })),
       margins,
       byCountry,
-      series30d,
+      series,
+      days,
       aovUsd,
-      revenueUsd30d: totalUsd,
+      revenueUsd: totalUsd,
     };
   });
 

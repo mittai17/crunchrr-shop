@@ -7,8 +7,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton, useSession } from "@clerk/nextjs";
-import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { adminApi, type AdminApi } from "@/lib/admin-client";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { adminApi } from "@/lib/admin-client";
+import { AdminApiContext, useAdminApi } from "./api-context";
+import { AlertsBell } from "./alerts-bell";
+import { CommandPalette } from "./command-palette";
+
+export { useAdminApi };
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: "space_dashboard" },
@@ -28,17 +33,11 @@ const NAV = [
 ] as const;
 
 /* Token context so nested pages share one session token lookup. */
-const AdminApiContext = createContext<AdminApi | null>(null);
-
-export function useAdminApi(): AdminApi {
-  const api = useContext(AdminApiContext);
-  if (!api) throw new Error("useAdminApi outside AdminChrome");
-  return api;
-}
 
 export function AdminChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { isLoaded, isSignedIn, session } = useSession();
+  const [paletteOpen, setPaletteOpen] = useState(false);
   /* The fetcher resolves the token per request; the memo just keeps a
    * stable identity. Re-memo on sign-in flips so early mounts (before the
    * session is active) don't pin a token-less fetcher. */
@@ -51,8 +50,22 @@ export function AdminChrome({ children }: { children: ReactNode }) {
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 
+  /* ⌘K / Ctrl+K opens the command palette from anywhere in the admin. */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
+    <AdminApiContext.Provider value={api}>
     <div className="flex min-h-screen w-full bg-canvas">
+      {isLoaded ? <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} /> : null}
       {/* Sidebar (desktop) */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-white/5 bg-charcoal px-4 py-6 lg:flex">
         <Link href="/admin" className="mb-1 flex items-center gap-2 px-2">
@@ -66,9 +79,21 @@ export function AdminChrome({ children }: { children: ReactNode }) {
             Ops
           </span>
         </Link>
-        <p className="mb-6 px-2 text-[10px] uppercase tracking-[0.2em] text-canvas/30">
+        <p className="mb-3 px-2 text-[10px] uppercase tracking-[0.2em] text-canvas/30">
           Control plane
         </p>
+
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className="mb-4 flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-left transition-colors hover:border-white/20 hover:bg-white/[0.06]"
+        >
+          <span className="material-symbols-outlined text-lg text-canvas/40">search</span>
+          <span className="flex-1 text-[11px] text-canvas/40">Search everything</span>
+          <kbd className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-[9px] text-canvas/40">
+            ⌘K
+          </kbd>
+        </button>
 
         <nav className="nav3d flex flex-1 flex-col gap-1">
           {NAV.map((item) => (
@@ -88,6 +113,10 @@ export function AdminChrome({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="mt-4 border-t border-white/10 pt-4">
+          <div className="mb-2 flex items-center justify-between px-3">
+            <span className="text-[10px] uppercase tracking-wider text-canvas/30">Live alerts</span>
+            {isLoaded ? <AlertsBell /> : null}
+          </div>
           <Link
             href="/"
             className="mb-3 flex items-center gap-3 rounded-xl px-3 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-canvas/55 transition-colors hover:bg-white/5 hover:text-canvas"
@@ -113,7 +142,16 @@ export function AdminChrome({ children }: { children: ReactNode }) {
               </span>
               <span className="font-display text-base font-bold text-canvas">ops.</span>
             </Link>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPaletteOpen(true)}
+                aria-label="Search"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-canvas/60"
+              >
+                <span className="material-symbols-outlined text-lg">search</span>
+              </button>
+              {isLoaded ? <AlertsBell /> : null}
               <Link href="/" className="text-[10px] font-bold uppercase tracking-wider text-canvas/50">
                 Storefront
               </Link>
@@ -139,8 +177,8 @@ export function AdminChrome({ children }: { children: ReactNode }) {
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 lg:px-8 lg:py-8">
           {/* Children mount only after Clerk hydration so their first
               fetch already has a live session token. */}
-          {isLoaded && api ? (
-            <AdminApiContext.Provider value={api}>{children}</AdminApiContext.Provider>
+          {isLoaded ? (
+            children
           ) : (
             <div className="flex items-center justify-center gap-2 py-20 text-xs font-bold uppercase tracking-wider text-charcoal-light">
               <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
@@ -150,5 +188,6 @@ export function AdminChrome({ children }: { children: ReactNode }) {
         </main>
       </div>
     </div>
+    </AdminApiContext.Provider>
   );
 }

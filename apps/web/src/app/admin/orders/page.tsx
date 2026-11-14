@@ -28,6 +28,11 @@ export default function AdminOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("ALL");
   const [q, setQ] = useState("");
+  /* Deep link support: /admin/orders?q=CR-… from the command palette. */
+  useEffect(() => {
+    const initial = new URLSearchParams(window.location.search).get("q");
+    if (initial) setQ(initial);
+  }, []);
 
   const load = useCallback(() => {
     setData(null);

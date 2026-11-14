@@ -150,9 +150,10 @@ export type Analytics = {
   }>;
   margins: Array<{ sku: string; name: string; colorway: string; units: number; revenueMinor: number; costMinor: number }>;
   byCountry: Array<{ country: string; currency: string; minor: number; count: number }>;
-  series30d: Array<{ date: string; minorUsd: number; orders: number }>;
+  series: Array<{ date: string; minorUsd: number; orders: number }>;
+  days: number;
   aovUsd: number;
-  revenueUsd30d: number;
+  revenueUsd: number;
 };
 
 export type ActivityFeed = {

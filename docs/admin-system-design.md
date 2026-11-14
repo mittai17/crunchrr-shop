@@ -149,6 +149,14 @@ order row at purchase).
 | DB unreachable | health endpoint reports; admin fetches error-note per page | Neon status/retry |
 | Seed run on live data | seed TRUNCATEs catalog + order-linked tables | ⚠️ never run seed against prod after launch (README warns; fresh setups only) |
 
+### 6.1 Operator ergonomics
+
+| Surface | Behavior | Why |
+|---|---|---|
+| Command palette (`⌘K` / `Ctrl+K`) | Local page jump (instant) + debounced server search across orders (number/email), products (name/slug/SKU) and customers (name/email); ↑↓/↵/Esc; deep-links into detail pages (`?q=` on list pages) | one keyboard path for every ops task; no menu hunting |
+| Alerts bell | 30s poll of `GET /api/admin/metrics` → webhook failures (24h), retry-exhausted splits, stuck splits (>10m), stock-outs, low stock; coral badge counts urgent items only | catches the failure modes in §6 without opening dashboards |
+| Analytics range | `?days=7` / `30` / `90` (default 30, invalid clamps to 30); every table + trend series re-scoped server-side | comparisons stay apples-to-apples; no client-side slicing |
+
 ## 7. Gap analysis → roadmap
 
 | # | Gap | Risk today | Fix (priority) |
