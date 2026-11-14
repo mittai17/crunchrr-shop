@@ -28,6 +28,7 @@ export default function AdminFulfillmentPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   /** Optional tracking code captured per split before "mark shipped". */
   const [trackDraft, setTrackDraft] = useState<Record<string, string>>({});
+  const [retryNote, setRetryNote] = useState<string | null>(null);
 
   const load = useCallback(() => {
     const params = new URLSearchParams();
@@ -73,6 +74,17 @@ export default function AdminFulfillmentPage() {
     }
   };
 
+  const retryAllFailed = async () => {
+    setError(null);
+    try {
+      const r = await api.post<{ retried: number }>("/api/admin/ops/retry-failed");
+      setRetryNote(r.retried > 0 ? `Re-dispatched ${r.retried} failed split${r.retried === 1 ? "" : "s"}.` : "Nothing failed to retry.");
+      load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <header>
@@ -86,6 +98,12 @@ export default function AdminFulfillmentPage() {
           Fulfillment Queue
         </h1>
       </header>
+
+      <AdminButton onClick={() => void retryAllFailed()}>Retry all failed dispatches</AdminButton>
+
+      {retryNote ? (
+        <p className="rounded-xl border border-jade/30 bg-jade/10 px-3 py-2 text-xs font-bold text-jade">{retryNote}</p>
+      ) : null}
 
       <div className="flex flex-wrap gap-1.5">
         {TABS.map((s) => (

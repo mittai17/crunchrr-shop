@@ -16,6 +16,7 @@ import {
   orderLines,
   orderSplits,
   orders,
+  partnerCredentials,
   productVariants,
   products,
   type OrderRow,
@@ -24,6 +25,7 @@ import {
 import { computeZoneTotals, convertUsdMinorToZone, formatMinor, type Totals, type ZoneMoney } from "../lib/money.js";
 import { getActivePromo, bumpPromoUsage } from "./promos.js";
 import { resolveActiveZone } from "./zones.js";
+import { sweepScheduledPosts } from "./social.js";
 import { AppError, ConflictError, NotFoundError, ValidationError } from "../lib/errors.js";
 import { createRazorpayOrder, isRazorpayConfigured } from "./payments/razorpay.js";
 import { createCashfreeOrder, isCashfreeConfigured } from "./payments/cashfree.js";
@@ -315,6 +317,9 @@ export async function confirmPaymentAndDispatch(args: {
     });
   }
 
+  /* ---- Auto-routing: hand IN_HOUSE lines to the best regional partner ---- */
+  await autoRouteLines(order);
+
   /* ---- Split lines per partner ---- */
   const lines = await db.select().from(orderLines).where(eq(orderLines.orderId, order.id));
 
@@ -430,9 +435,13 @@ async function dispatchSplit(splitId: string, partnerId: PartnerIdType): Promise
     });
   } catch (err) {
     // Partner outage must never fail the payment webhook (return 200, retry later).
+    // Preserve the retry-attempts counter the ops worker keeps in partnerRef.
     await db
       .update(orderSplits)
-      .set({ status: "REJECTED_BY_PARTNER", partnerRef: { error: String(err) } })
+      .set({
+        status: "REJECTED_BY_PARTNER",
+        partnerRef: { ...((split.partnerRef as Record<string, unknown>) ?? {}), error: String(err) },
+      })
       .where(eq(orderSplits.id, splitId));
     await db.insert(orderEvents).values({
       orderId: order.id,
@@ -442,8 +451,118 @@ async function dispatchSplit(splitId: string, partnerId: PartnerIdType): Promise
   }
 }
 
-/** Mark a whole order as failed (payment failure webhooks). */
-export async function failOrder(args: {
+/* ------------------------------------------------------------------ */
+/* Smart Ops — auto-routing + retry worker                              */
+/* ------------------------------------------------------------------ */
+
+/** Country → routing region bucket. */
+export function regionForCountry(countryCode: string): "IN" | "US" | "UK" | "EU" | "GLOBAL" {
+  if (countryCode === "IN") return "IN";
+  if (["US", "CA", "AU", "SG", "MX", "BR", "NZ"].includes(countryCode)) return "US";
+  if (countryCode === "GB") return "UK";
+  if (["DE", "FR", "NL", "IT", "ES", "IE"].includes(countryCode)) return "EU";
+  return "GLOBAL";
+}
+
+/** Preferred partner order per region — live adapters first. */
+const REGION_PREFERENCE: Record<string, PartnerIdType[]> = {
+  IN: ["PRINTROVE", "QIKINK", "INKMONK", "BLINKSTORE"],
+  US: ["PRINTFUL", "GOOTEN", "PRINTIFY", "GELATO"],
+  UK: ["INKTHREADABLE", "CONTRADO", "GELATO"],
+  EU: ["GELATO", "INKTHREADABLE", "CONTRADO"],
+  GLOBAL: ["GELATO", "PRINTFUL", "QIKINK"],
+};
+
+/**
+ * Auto-routing engine: lines still on IN_HOUSE (no vendor assigned) are
+ * handed to the first ACTIVE partner matching the destination's region.
+ * Explicit vendor assignments (Qikink/Printrove/…) are never overridden.
+ */
+async function autoRouteLines(order: OrderRow): Promise<void> {
+  const db = getDb(env().DATABASE_URL);
+  const lines = await db.select().from(orderLines).where(eq(orderLines.orderId, order.id));
+  const unrouted = lines.filter((l) => l.partnerId === "IN_HOUSE");
+  if (unrouted.length === 0) return;
+
+  const region = regionForCountry(order.shipCountry);
+  const preference = REGION_PREFERENCE[region] ?? REGION_PREFERENCE.GLOBAL ?? [];
+  const activePartners = await db
+    .select({ partnerId: partnerCredentials.partnerId })
+    .from(partnerCredentials)
+    .where(eq(partnerCredentials.active, true));
+  const active = new Set(activePartners.map((p) => p.partnerId));
+  const target = preference.find((p) => active.has(p)) ?? "IN_HOUSE";
+
+  if (target === "IN_HOUSE") return; // no active regional partner — keep manual
+
+  for (const line of unrouted) {
+    await db.update(orderLines).set({ partnerId: target }).where(eq(orderLines.id, line.id));
+  }
+  await db.insert(orderEvents).values({
+    orderId: order.id,
+    kind: "AUTO_ROUTED",
+    detail: {
+      from: "IN_HOUSE",
+      to: target,
+      region,
+      country: order.shipCountry,
+      lines: unrouted.map((l) => l.sku),
+    },
+  });
+}
+
+/**
+ * Retry worker — sweeps REJECTED_BY_PARTNER splits and re-dispatches them
+ * with capped attempts (5). One process owns the loop; a module flag keeps
+ * double-starts harmless.
+ */
+let retryWorkerStarted = false;
+const MAX_DISPATCH_ATTEMPTS = 5;
+const RETRY_INTERVAL_MS = 60_000;
+
+export function startDispatchRetryWorker(): void {
+  if (retryWorkerStarted) return;
+  retryWorkerStarted = true;
+
+  const sweep = async (): Promise<void> => {
+    try {
+      const db = getDb(env().DATABASE_URL);
+      const rejected = await db
+        .select()
+        .from(orderSplits)
+        .where(eq(orderSplits.status, "REJECTED_BY_PARTNER"));
+
+      for (const split of rejected) {
+        if (split.partnerId === "IN_HOUSE") continue; // manual — human retries
+        const ref = (split.partnerRef ?? {}) as { attempts?: number };
+        const attempts = ref.attempts ?? 0;
+        if (attempts >= MAX_DISPATCH_ATTEMPTS) continue;
+
+        const next = attempts + 1;
+        await db
+          .update(orderSplits)
+          .set({ partnerRef: { ...ref, attempts: next }, status: "PENDING" })
+          .where(eq(orderSplits.id, split.id));
+        await db.insert(orderEvents).values({
+          orderId: split.orderId,
+          kind: "AUTO_RETRY",
+          detail: { partnerId: split.partnerId, attempt: next, max: MAX_DISPATCH_ATTEMPTS },
+        }).catch(() => undefined);
+        await dispatchSplitById(split.id).catch(() => undefined);
+      }
+    } catch {
+      // Sweep failures are logged by the DB layer; never crash the loop.
+    }
+
+    // Social Studio — publish scheduled posts whose time has come.
+    await sweepScheduledPosts();
+  };
+
+  void sweep();
+  setInterval(() => void sweep(), RETRY_INTERVAL_MS).unref();
+}
+
+/** Mark a whole order as failed (payment failure webhooks). */export async function failOrder(args: {
   orderId: string;
   reason: string;
 }): Promise<OrderRow | null> {

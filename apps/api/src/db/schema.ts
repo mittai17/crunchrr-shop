@@ -313,6 +313,8 @@ export const partnerCredentials = pgTable("partner_credentials", {
   /** Admin-editable credentials; adapters prefer these over env vars. */
   clientId: text("client_id"),
   clientSecret: text("client_secret"),
+  /** Routing region: IN | US | UK | EU | GLOBAL — drives auto-routing. */
+  region: varchar("region", { length: 12 }).notNull().default("GLOBAL"),
   active: boolean("active").notNull().default(true),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -400,6 +402,52 @@ export const orderEventRelations = relations(orderEvents, ({ one }) => ({
 /* ------------------------------------------------------------------ */
 /* Inferred types                                                      */
 /* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/* Admin platform v2 — team roles, audit, social studio                */
+/* ------------------------------------------------------------------ */
+
+/** Admin team. role is text (OWNER/OPS/SUPPORT) to avoid enum churn. */
+export const adminUsers = pgTable("admin_users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  clerkUserId: text("clerk_user_id").notNull().unique(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  /** OWNER: everything · OPS: fulfillment+catalog · SUPPORT: read + notes */
+  role: text("role").notNull().default("OPS"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Append-only audit of every admin write (who/what/before-after). */
+export const adminActions = pgTable("admin_actions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  clerkUserId: text("clerk_user_id").notNull(),
+  actorName: text("actor_name").notNull(),
+  action: text("action").notNull(),
+  target: text("target").notNull(),
+  detail: jsonb("detail"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("admin_actions_created_idx").on(t.createdAt)]);
+
+/** Social Studio — one composer, many platforms (simulated until OAuth). */
+export const socialPosts = pgTable("social_posts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  platform: text("platform").notNull(), // INSTAGRAM | TIKTOK | X | FACEBOOK | PINTEREST | YOUTUBE
+  content: text("content").notNull(),
+  productSlug: text("product_slug"),
+  imageUrl: text("image_url"),
+  /** DRAFT | SCHEDULED | PUBLISHED | FAILED */
+  status: text("status").notNull().default("DRAFT"),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+  postedAt: timestamp("posted_at", { withTimezone: true }),
+  postRef: text("post_ref"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type AdminUserRow = typeof adminUsers.$inferSelect;
+export type AdminActionRow = typeof adminActions.$inferSelect;
+export type SocialPostRow = typeof socialPosts.$inferSelect;
 
 export type ProductRow = typeof products.$inferSelect;
 export type ProductImageRow = typeof productImages.$inferSelect;

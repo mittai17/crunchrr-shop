@@ -593,6 +593,8 @@ export const adminPartnerSchema = z.object({
   partnerId: z.string(),
   configured: z.boolean(),
   active: z.boolean(),
+  /** Routing region: IN | US | UK | EU | GLOBAL. */
+  region: z.string().nullable(),
   apiBaseUrl: z.string(),
   authHint: z.string().nullable(),
   clientId: z.string().nullable(),

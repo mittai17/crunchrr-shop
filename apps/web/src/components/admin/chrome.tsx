@@ -12,12 +12,16 @@ import { adminApi, type AdminApi } from "@/lib/admin-client";
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: "space_dashboard" },
+  { href: "/admin/live", label: "Live Ops", icon: "bolt" },
+  { href: "/admin/analytics", label: "Analytics", icon: "monitoring" },
   { href: "/admin/orders", label: "Orders", icon: "receipt_long" },
   { href: "/admin/fulfillment", label: "Fulfillment", icon: "local_shipping" },
   { href: "/admin/products", label: "Catalog", icon: "checkroom" },
   { href: "/admin/partners", label: "Partners", icon: "hub" },
   { href: "/admin/zones", label: "Countries", icon: "public" },
   { href: "/admin/promos", label: "Promos", icon: "sell" },
+  { href: "/admin/social", label: "Studio", icon: "campaign" },
+  { href: "/admin/team", label: "Team", icon: "group" },
   { href: "/admin/webhooks", label: "Webhooks", icon: "webhook" },
 ] as const;
 

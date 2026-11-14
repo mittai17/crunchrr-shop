@@ -31,6 +31,7 @@ export type AdminApi = {
   post: <T>(path: string, body?: unknown) => Promise<T>;
   patch: <T>(path: string, body?: unknown) => Promise<T>;
   put: <T>(path: string, body?: unknown) => Promise<T>;
+  delete: <T>(path: string) => Promise<T>;
 };
 
 /** Stable fetcher bound to the live session — the token is resolved per
@@ -41,6 +42,7 @@ export function adminApi(getToken: () => Promise<string | null>): AdminApi {
     post: (p, b) => resolve(getToken).then((t) => call("POST", p, t, b)),
     patch: (p, b) => resolve(getToken).then((t) => call("PATCH", p, t, b)),
     put: (p, b) => resolve(getToken).then((t) => call("PUT", p, t, b)),
+    delete: (p) => resolve(getToken).then((t) => call("DELETE", p, t)),
   };
 }
 
@@ -131,3 +133,65 @@ export type ZoneList = { zones: Zone[] };
 export type PromoList = { promos: Promo[] };
 export type { Zone, Promo, AdminPartner };
 export { PARTNER_IDS, CURRENCY_CODES } from "@crunchrr/shared";
+
+/* ------------------------------------------------------------------ */
+/* v2 — analytics, live ops, team, social studio                       */
+/* ------------------------------------------------------------------ */
+
+export type Analytics = {
+  bestsellers: Array<{ sku: string; name: string; colorway: string; units: number; revenueMinor: number }>;
+  vendors: Array<{
+    partnerId: string;
+    total: number;
+    open: number;
+    delivered: number;
+    rejected: number;
+    avgAcceptMins: number | null;
+  }>;
+  margins: Array<{ sku: string; name: string; colorway: string; units: number; revenueMinor: number; costMinor: number }>;
+  byCountry: Array<{ country: string; currency: string; minor: number; count: number }>;
+  series30d: Array<{ date: string; minorUsd: number; orders: number }>;
+  aovUsd: number;
+  revenueUsd30d: number;
+};
+
+export type ActivityFeed = {
+  feed: Array<{ ts: string; source: string; kind: string; label: string; href: string | null }>;
+};
+
+export type TeamAdmin = {
+  id: string;
+  clerkUserId: string;
+  name: string;
+  email: string;
+  role: string;
+  active: boolean;
+  createdAt: string;
+};
+
+export type AuditRow = {
+  id: string;
+  clerkUserId: string;
+  actorName: string;
+  action: string;
+  target: string;
+  detail: unknown;
+  createdAt: string;
+};
+
+export type TeamData = { admins: TeamAdmin[]; audit: AuditRow[] };
+
+export type SocialPost = {
+  id: string;
+  platform: string;
+  content: string;
+  productSlug: string | null;
+  imageUrl: string | null;
+  status: string;
+  scheduledAt: string | null;
+  postedAt: string | null;
+  postRef: string | null;
+  createdAt: string;
+};
+
+export type SocialData = { posts: SocialPost[]; platforms: string[] };

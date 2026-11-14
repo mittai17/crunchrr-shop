@@ -58,11 +58,18 @@ export default function AdminPartnersPage() {
   const [data, setData] = useState<PartnerList | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  const [form, setForm] = useState<{ apiBaseUrl: string; clientId: string; clientSecret: string; active: boolean }>({
+  const [form, setForm] = useState<{
+    apiBaseUrl: string;
+    clientId: string;
+    clientSecret: string;
+    active: boolean;
+    region: string;
+  }>({
     apiBaseUrl: "",
     clientId: "",
     clientSecret: "",
     active: true,
+    region: "GLOBAL",
   });
   const [testing, setTesting] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<Record<string, { ok: boolean; message: string }>>({});
@@ -80,7 +87,7 @@ export default function AdminPartnersPage() {
 
   const startEdit = (p: AdminPartner) => {
     setEditing(p.partnerId);
-    setForm({ apiBaseUrl: p.apiBaseUrl, clientId: "", clientSecret: "", active: p.active });
+    setForm({ apiBaseUrl: p.apiBaseUrl, clientId: "", clientSecret: "", active: p.active, region: p.region ?? "GLOBAL" });
   };
 
   const save = async (partnerId: string) => {
@@ -92,6 +99,7 @@ export default function AdminPartnersPage() {
         ...(form.clientId.trim() ? { clientId: form.clientId.trim() } : {}),
         ...(form.clientSecret.trim() ? { clientSecret: form.clientSecret.trim() } : {}),
         active: form.active,
+        region: form.region,
       });
       setEditing(null);
       load();
@@ -151,6 +159,11 @@ export default function AdminPartnersPage() {
                 </h2>
                 <div className="flex gap-1.5">
                   {p.active ? <StatusChip label="Active" tone="bg-jade-tint text-jade-deep" /> : <StatusChip label="Paused" tone="bg-error-container text-error" />}
+                  {p.region ? (
+                    <span className="rounded-full border border-neutral-200/70 px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-wider text-charcoal-muted">
+                      {p.region}
+                    </span>
+                  ) : null}
                   {p.configured ? (
                     <StatusChip label="Live" tone="bg-charcoal text-canvas" />
                   ) : (
@@ -177,6 +190,19 @@ export default function AdminPartnersPage() {
 
               {isEditing ? (
                 <div className="space-y-3">
+                  <Field label="Routing region" hint="Drives auto-routing of unassigned (IN_HOUSE) lines.">
+                    <select
+                      value={form.region}
+                      onChange={(e) => setForm({ ...form, region: e.target.value })}
+                      className={inputCls}
+                    >
+                      {["IN", "US", "UK", "EU", "GLOBAL"].map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
                   <Field label="API base URL">
                     <input
                       value={form.apiBaseUrl}

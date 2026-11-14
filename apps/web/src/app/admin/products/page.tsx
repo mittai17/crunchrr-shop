@@ -4,6 +4,7 @@
  * Catalog — product table with stock/vendor coverage; edit → detail page.
  */
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useAdminApi } from "@/components/admin/chrome";
 import { AdminButton, ErrorNote, Spinner, StatusChip, Td, Th } from "@/components/admin/ui";
@@ -12,6 +13,7 @@ import type { AdminProductRow } from "@/lib/admin-client";
 
 export default function AdminProductsPage() {
   const api = useAdminApi();
+  const router = useRouter();
   const [rows, setRows] = useState<AdminProductRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -53,12 +55,25 @@ export default function AdminProductsPage() {
           </div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-charcoal">Products</h1>
         </div>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search products…"
-          className="w-52 rounded-xl border border-neutral-200/80 bg-white px-3 py-2 text-sm outline-none focus:border-charcoal/40"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search products…"
+            className="w-52 rounded-xl border border-neutral-200/80 bg-white px-3 py-2 text-sm outline-none focus:border-charcoal/40"
+          />
+          <a
+            href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001"}/api/admin/export/products.csv`}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-xl border border-neutral-200/80 bg-white px-3 py-2 font-display text-[10px] font-bold uppercase tracking-wider text-charcoal hover:border-brand hover:text-brand"
+          >
+            CSV
+          </a>
+          <AdminButton variant="coral" onClick={() => router.push("/admin/products/new")}>
+            + New product
+          </AdminButton>
+        </div>
       </header>
 
       {error ? <ErrorNote message={error} /> : null}

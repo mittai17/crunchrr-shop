@@ -39,7 +39,13 @@ export default function AdminOrderDetailPage() {
   const setStatus = async (status: string) => {
     setBusy(true);
     try {
-      await api.patch(`/api/admin/orders/${id}/status`, { status, note: note.trim() || undefined });
+      if (status === "REFUNDED") {
+        // Proper refund: restocks inventory + cancels open splits + audit.
+        const reason = note.trim() || "Customer refund issued from admin panel";
+        await api.post(`/api/admin/orders/${id}/refund`, { reason });
+      } else {
+        await api.patch(`/api/admin/orders/${id}/status`, { status, note: note.trim() || undefined });
+      }
       setNote("");
       load();
     } catch (e) {

@@ -9,6 +9,9 @@
 import "dotenv/config";
 import { getDb } from "./client.js";
 import {
+  orders,
+} from "./schema.js";
+import {
   products,
   productImages,
   productVariants,
@@ -715,6 +718,7 @@ async function main() {
     console.error("DATABASE_URL is not set — copy .env.example to .env first.");
     process.exit(1);
   }
+  await guardLiveDatabase();
   const db = getDb(url);
 
   console.log("Seeding Crunchrr catalog…");
@@ -902,3 +906,20 @@ main().catch((err) => {
   console.error("Seed failed:", err);
   process.exit(1);
 });
+
+/** Refuses to wipe live order data — set SEED_FORCE=true to override. */
+async function guardLiveDatabase(): Promise<void> {
+  const db = getDb(process.env.DATABASE_URL as string);
+  const rows = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(orders);
+  const count = rows[0]?.count ?? 0;
+  if (count > 0 && process.env.SEED_FORCE !== "true") {
+    console.error(
+      `Refusing to seed: ${count} orders exist. The seed wipes catalog + order-linked\n` +
+      `tables (TRUNCATE ... CASCADE). For a fresh setup run it on an empty DB,\n` +
+      `or set SEED_FORCE=true to wipe deliberately.`,
+    );
+    process.exit(1);
+  }
+}

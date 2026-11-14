@@ -58,6 +58,14 @@ export default function AdminOrdersPage() {
           <h1 className="font-display text-3xl font-bold tracking-tight text-charcoal">Orders</h1>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001"}/api/admin/export/orders.csv`}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-xl border border-neutral-200/80 bg-white px-3 py-2 font-display text-[10px] font-bold uppercase tracking-wider text-charcoal hover:border-brand hover:text-brand"
+          >
+            Export CSV
+          </a>
           <span className="material-symbols-outlined text-base text-charcoal-light">search</span>
           <input
             value={q}
