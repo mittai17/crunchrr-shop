@@ -45,7 +45,7 @@ function verifyRazorpaySignature(rawBody: string, signature: string | undefined)
 }
 
 type RazorpayRouteOptions = {
-  config: { rawBodyRequired: true };
+  config: { rawBodyRequired: true; rateLimit: false };
 };
 
 export async function razorpayWebhookRoutes(app: FastifyInstance): Promise<void> {
@@ -54,7 +54,8 @@ export async function razorpayWebhookRoutes(app: FastifyInstance): Promise<void>
     {
       // Fastify v5: access the untouched raw body for signature verification.
       ...({
-        config: { rawBodyRequired: true },
+        // Webhook retries are bursty; HMAC + event-id dedupe guard the route.
+        config: { rawBodyRequired: true, rateLimit: false },
       } satisfies Partial<RazorpayRouteOptions>),
       // Payload cap: Razorpay webhooks are small JSON envelopes.
       bodyLimit: 256 * 1024,

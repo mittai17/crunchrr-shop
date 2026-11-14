@@ -21,6 +21,8 @@ export async function cashfreeWebhookRoutes(app: FastifyInstance): Promise<void>
     "/api/webhooks/cashfree",
     {
       bodyLimit: 256 * 1024,
+      // Webhook retries are bursty; HMAC + event-id dedupe guard the route.
+      config: { rateLimit: false },
     } as never,
     async (req: FastifyRequest & { rawBody?: string | Buffer }, reply) => {
       const raw =

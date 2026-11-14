@@ -156,10 +156,10 @@ order row at purchase).
 | G1 | **No RBAC** — one flat allowlist; every admin can edit creds & zones | low (solo) | role column on admin users (OWNER/OPS/SUPPORT), `requireAdmin(role)` overload — P2 |
 | G2 | **No admin action audit log** — order fulfillment events are logged; product/zone/promo/credential edits are not | medium | `admin_actions` table (who, what, before/after hash) written in every admin write route — **P1** |
 | G3 | **No automatic dispatch retry** — failed splits need a human | medium | outbox table + retry worker (attempts, backoff, nextRunAt); queue page already exists as the manual fallback — **P1** |
-| G4 | **No live updates** — overview/fulfillment refresh on reload only | low | 30s SWR-style poll first (cheap), SSE later if needed — P2 |
-| G5 | **No API rate limiting** on admin routes | low (allowlist gates) | `@fastify/rate-limit` per-user token bucket — P2 |
-| G6 | **No metrics/observability** — logs only | medium at scale | pino structured logs exist; add `/metrics` (order→dispatch latency, webhook outcomes, partner error rates) — P2 |
-| G7 | **No backup/DR runbook** — Neon has PITR but no tested restore path | low today | documented restore drill pre-launch — P1 (go-live gate) |
+| G4 | ~~No live updates~~ | ✅ **closed** | Overview + metrics poll 20s; Live Ops 15s |
+| G5 | ~~No API rate limiting~~ | ✅ **closed** | `@fastify/rate-limit` global 300/min; admin 120/min, partner 60/min, checkout 20/min, demo 10/min; webhooks exempt (HMAC+dedupe) |
+| G6 | ~~No metrics/observability~~ | ✅ **closed** | `GET /api/admin/metrics` (admin-gated): order/webhook/split status, stale+exhausted splits, inventory, worker counters, uptime, DB ping; Overview health strip |
+| G7 | ~~No backup/DR runbook~~ | ✅ **closed** | `docs/runbook.md`: go-live checklist, timed restore drill, incident playbooks |
 | G8 | **No partner portal** — vendors can't see their splits | none (internal ops) | scoped `/partner` role + split-filtered API (G1 prerequisite) — P3 |
 | G9 | **FX/fee data is hand-set** — no refresh job | low | nightly FX pull + admin override flag — P3 |
 | G10 | Seed truncates order-linked tables if run on live DB | one bad command from data loss | split `seed:catalog` vs `seed:fresh` scripts — **P1** (cheapest fix, highest footgun) |

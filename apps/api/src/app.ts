@@ -144,10 +144,33 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   await app.register(rateLimit, {
-    global: false, // applied per-route where it matters (checkout, webhooks off)
-    max: 100,
+    global: true, // every route gets a default; strict overrides per-route below
+    max: 300,
     timeWindow: "1 minute",
+    keyGenerator: (req) => req.ip,
   });
+
+  /**
+   * Applies one rate-limit bucket to every route a plugin registers —
+   * used for the admin and partner APIs so a leaked token can't hammer
+   * the control plane even from an allowlisted account.
+   * Explicit per-route `config.rateLimit` wins.
+   */
+  const withLimit =
+    (
+      handler: (instance: FastifyInstance) => Promise<void>,
+      limit: { max: number; timeWindow: string },
+    ): FastifyPluginAsync =>
+    async (instance) => {
+      instance.addHook("onRoute", (route) => {
+        const existing = (route.config as { rateLimit?: unknown } | undefined)?.rateLimit;
+        route.config = {
+          ...(route.config ?? {}),
+          rateLimit: existing ?? limit,
+        };
+      });
+      await handler(instance);
+    };
 
   /* ------------------------------- Routes ------------------------------ */
   const registerRoutes: FastifyPluginAsync = async (instance) => {
@@ -155,9 +178,10 @@ export async function buildApp(): Promise<FastifyInstance> {
     await instance.register(productRoutes);
     await instance.register(orderRoutes);
     await instance.register(storefrontRoutes);
-    await instance.register(adminRoutes);
-    await instance.register(partnerRoutes);
-    // Webhooks last & isolated — they must never inherit global rate limits.
+    await instance.register(withLimit(adminRoutes, { max: 120, timeWindow: "1 minute" }));
+    await instance.register(withLimit(partnerRoutes, { max: 60, timeWindow: "1 minute" }));
+    // Webhooks last & isolated — gateways retry in bursts and must never
+    // inherit our limits (each receiver verifies HMAC + dedupes by event id).
     await instance.register(razorpayWebhookRoutes);
     await instance.register(cashfreeWebhookRoutes);
     // Dev-only demo payment confirm (no-ops itself when disabled).

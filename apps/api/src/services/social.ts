@@ -10,6 +10,7 @@ import { and, eq, lte } from "drizzle-orm";
 import { getDb } from "../db/client.js";
 import { socialPosts } from "../db/schema.js";
 import { env } from "../config/env.js";
+import { inc } from "../lib/metrics.js";
 
 export type SocialPlatform =
   | "INSTAGRAM"
@@ -56,6 +57,7 @@ export async function sweepScheduledPosts(): Promise<number> {
       .limit(20);
     for (const post of due) {
       await publishPost(post.id).catch(() => undefined);
+      inc("social.sweep.published");
     }
     return due.length;
   } catch {

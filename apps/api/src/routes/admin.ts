@@ -23,6 +23,7 @@ import {
   type OrderStatus,
   type PartnerId,
 } from "@crunchrr/shared";
+import { snapshotCounters } from "../lib/metrics.js";
 import { getDb } from "../db/client.js";
 import {
   adminActions,
@@ -1652,5 +1653,109 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       ltvUsd: Math.round(r.grandMinor / (fx.get(r.currency) ?? 1)),
     }));
     return { customers };
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* v3 — Observability: one gated snapshot of the whole control plane  */
+  /* ---------------------------------------------------------------- */
+  app.get("/api/admin/metrics", async (req) => {
+    await requireAdmin(req);
+    const db = getDb(env().DATABASE_URL);
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const [
+      orderStatus,
+      orders24h,
+      revenue24h,
+      webhookOutcomes,
+      lastWebhook,
+      splitStatus,
+      stalePending,
+      retryExhausted,
+      stockCounts,
+    ] = await Promise.all([
+      db
+        .select({ status: orders.status, count: sql<number>`count(*)::int` })
+        .from(orders)
+        .groupBy(orders.status)
+        .orderBy(desc(sql`count(*)`)),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(orders)
+        .where(gte(orders.createdAt, since)),
+      db
+        .select({
+          currency: orders.currency,
+          minor: sql<number>`sum(${orders.grandTotalMinor})::int`,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(orders)
+        .where(and(gte(orders.createdAt, since), sql`${orders.paidAt} is not null`))
+        .groupBy(orders.currency),
+      db
+        .select({ outcome: paymentWebhooks.outcome, count: sql<number>`count(*)::int` })
+        .from(paymentWebhooks)
+        .where(gte(paymentWebhooks.receivedAt, since))
+        .groupBy(paymentWebhooks.outcome),
+      db.select({ last: sql<string | null>`max(${paymentWebhooks.receivedAt})` }).from(paymentWebhooks),
+      db
+        .select({ status: orderSplits.status, count: sql<number>`count(*)::int` })
+        .from(orderSplits)
+        .groupBy(orderSplits.status),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(orderSplits)
+        .innerJoin(orders, eq(orderSplits.orderId, orders.id))
+        .where(and(eq(orderSplits.status, "PENDING"), sql`${orders.createdAt} < now() - interval '10 minutes'`)),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(orderSplits)
+        .where(
+          and(
+            eq(orderSplits.status, "REJECTED_BY_PARTNER"),
+            sql`coalesce((${orderSplits.partnerRef}->>'attempts')::int, 0) >= 5`,
+          ),
+        ),
+      db
+        .select({
+          low: sql<number>`count(*) filter (where ${productVariants.stock} <= 5)::int`,
+          out: sql<number>`count(*) filter (where ${productVariants.stock} = 0)::int`,
+          skus: sql<number>`count(*)::int`,
+        })
+        .from(productVariants),
+    ]);
+
+    let dbOk = true;
+    try {
+      await db.execute(sql`select 1`);
+    } catch {
+      dbOk = false;
+    }
+
+    return {
+      generatedAt: new Date().toISOString(),
+      uptimeSeconds: Math.floor(process.uptime()),
+      memoryMb: {
+        rss: Math.round(process.memoryUsage().rss / 1024 / 1024),
+        heap: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      },
+      dbOk,
+      orders: {
+        byStatus: orderStatus,
+        last24h: orders24h[0]?.count ?? 0,
+        revenue24h,
+      },
+      webhooks: {
+        outcomes24h: webhookOutcomes,
+        lastReceivedAt: lastWebhook[0]?.last ?? null,
+      },
+      splits: {
+        byStatus: splitStatus,
+        stalePending: stalePending[0]?.count ?? 0,
+        retryExhausted: retryExhausted[0]?.count ?? 0,
+      },
+      inventory: stockCounts[0] ?? { skus: 0, low: 0, out: 0 },
+      workers: snapshotCounters(),
+    };
   });
 }

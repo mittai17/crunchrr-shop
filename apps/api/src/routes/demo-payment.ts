@@ -16,7 +16,10 @@ const bodySchema = z.object({
 });
 
 export async function demoPaymentRoutes(app: FastifyInstance): Promise<void> {
-  app.post("/api/orders/demo-confirm", async (req, reply) => {
+  app.post(
+    "/api/orders/demo-confirm",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    async (req, reply) => {
     const e = env();
     if (e.NODE_ENV === "production" || !isDemoPayments(e)) {
       return reply.status(404).send({
@@ -34,5 +37,6 @@ export async function demoPaymentRoutes(app: FastifyInstance): Promise<void> {
 
     const payload = await serializeOrder(order.id);
     return reply.send({ ok: true, order: payload });
-  });
+    },
+  );
 }

@@ -30,6 +30,7 @@ import { AppError, ConflictError, NotFoundError, ValidationError } from "../lib/
 import { createRazorpayOrder, isRazorpayConfigured } from "./payments/razorpay.js";
 import { createCashfreeOrder, isCashfreeConfigured } from "./payments/cashfree.js";
 import { env, isDemoPayments } from "../config/env.js";
+import { inc } from "../lib/metrics.js";
 import type { CheckoutRequest, Currency } from "@crunchrr/shared";
 
 export type CheckoutResult = {
@@ -536,6 +537,7 @@ export function startDispatchRetryWorker(): void {
   retryWorkerStarted = true;
 
   const sweep = async (): Promise<void> => {
+    inc("worker.retry.sweeps");
     try {
       const db = getDb(env().DATABASE_URL);
       const rejected = await db
@@ -559,6 +561,7 @@ export function startDispatchRetryWorker(): void {
           kind: "AUTO_RETRY",
           detail: { partnerId: split.partnerId, attempt: next, max: MAX_DISPATCH_ATTEMPTS },
         }).catch(() => undefined);
+        inc("worker.retry.redispatched");
         await dispatchSplitById(split.id).catch(() => undefined);
       }
     } catch {

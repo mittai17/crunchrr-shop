@@ -2,7 +2,8 @@
 
 /**
  * Admin overview — KPIs, 7-day USD-equivalent revenue bars, fulfillment
- * pressure, low-stock watchlist.
+ * pressure, low-stock watchlist, and a live system-health strip.
+ * Polls every 20s (G4) so ops never has to reload to see a stuck split.
  */
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -11,16 +12,49 @@ import { ErrorNote, KpiCard, Spinner, StatusChip } from "@/components/admin/ui";
 import { formatMoney, formatUsd } from "@/lib/utils";
 import type { Overview } from "@/lib/admin-client";
 
+type Health = {
+  generatedAt: string;
+  uptimeSeconds: number;
+  memoryMb: { rss: number; heap: number };
+  dbOk: boolean;
+  orders: { byStatus: Array<{ status: string; count: number }>; last24h: number };
+  webhooks: { outcomes24h: Array<{ outcome: string | null; count: number }>; lastReceivedAt: string | null };
+  splits: { byStatus: Array<{ status: string; count: number }>; stalePending: number; retryExhausted: number };
+  inventory: { skus: number; low: number; out: number };
+  workers: Record<string, number>;
+};
+
+function uptime(seconds: number): string {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
 export default function AdminOverviewPage() {
   const api = useAdminApi();
   const [data, setData] = useState<Overview | null>(null);
+  const [health, setHealth] = useState<Health | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void api
-      .get<Overview>("/api/admin/overview")
-      .then(setData)
-      .catch((e: Error) => setError(e.message));
+    let alive = true;
+    const load = (): void => {
+      void api
+        .get<Overview>("/api/admin/overview")
+        .then((d) => alive && setData(d))
+        .catch((e: Error) => alive && setError(e.message));
+      void api
+        .get<Health>("/api/admin/metrics")
+        .then((m) => alive && setHealth(m))
+        .catch(() => undefined);
+    };
+    load();
+    const timer = setInterval(load, 20_000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
   }, [api]);
 
   if (error) return <ErrorNote message={error} />;
@@ -78,6 +112,51 @@ export default function AdminOverviewPage() {
           tone={data.webhookFailures24h > 0 ? "alert" : "good"}
         />
       </div>
+
+      {/* System health — live, polled every 20s */}
+      {health ? (
+        <section className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-xs font-bold uppercase tracking-[0.16em] text-charcoal">
+              System health
+            </h2>
+            <span className="flex items-center gap-1.5 font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-jade" />
+              live · 20s · refreshed {new Date(health.generatedAt).toLocaleTimeString()}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6">
+            <HealthChip
+              label="Database"
+              value={health.dbOk ? "healthy" : "DOWN"}
+              tone={health.dbOk ? "good" : "alert"}
+            />
+            <HealthChip label="API uptime" value={uptime(health.uptimeSeconds)} tone="good" />
+            <HealthChip label="Orders 24h" value={String(health.orders.last24h)} />
+            <HealthChip
+              label="Webhook events 24h"
+              value={String(health.webhooks.outcomes24h.reduce((s, o) => s + o.count, 0))}
+              tone={health.webhooks.outcomes24h.some((o) => o.outcome === "INVALID_SIGNATURE" || o.outcome === "ERROR") ? "alert" : "good"}
+            />
+            <HealthChip
+              label="Stale splits >10m"
+              value={String(health.splits.stalePending)}
+              tone={health.splits.stalePending > 0 ? "alert" : "good"}
+            />
+            <HealthChip
+              label="Retry exhausted"
+              value={String(health.splits.retryExhausted)}
+              tone={health.splits.retryExhausted > 0 ? "alert" : "good"}
+            />
+          </div>
+          <p className="mt-3 font-mono text-[10px] leading-relaxed text-charcoal-light">
+            rss {health.memoryMb.rss}mb · heap {health.memoryMb.heap}mb · skus {health.inventory.skus} (low{" "}
+            {health.inventory.low}, out {health.inventory.out}) · sweeps {health.workers["worker.retry.sweeps"] ?? 0} ·
+            redispatched {health.workers["worker.retry.redispatched"] ?? 0} · social published{" "}
+            {health.workers["social.sweep.published"] ?? 0}
+          </p>
+        </section>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-5">
         {/* 7-day revenue */}
@@ -188,6 +267,27 @@ export default function AdminOverviewPage() {
           </div>
         </Link>
       </section>
+    </div>
+  );
+}
+
+function HealthChip({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "good" | "alert";
+}) {
+  const toneCls =
+    tone === "alert" ? "text-coral" : tone === "good" ? "text-jade" : "text-charcoal";
+  return (
+    <div className="rounded-xl border border-neutral-100 bg-surface-muted/50 px-3 py-2">
+      <p className="font-display text-[9px] font-bold uppercase tracking-wider text-charcoal-light">
+        {label}
+      </p>
+      <p className={`font-display text-sm font-bold ${toneCls}`}>{value}</p>
     </div>
   );
 }
