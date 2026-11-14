@@ -17,10 +17,13 @@ import { env } from "../config/env.js";
 import { verifyClerkToken } from "./auth.js";
 import { AppError } from "./errors.js";
 
-export type AdminRole = "OWNER" | "OPS" | "SUPPORT";
-export type AdminIdentity = { userId: string; role: AdminRole; name: string };
+export type AdminRole = "OWNER" | "OPS" | "SUPPORT" | "PARTNER";
+export type AdminIdentity = { userId: string; role: AdminRole; name: string; partnerId: string | null };
 
-const ROLE_RANK: Record<AdminRole, number> = { SUPPORT: 1, OPS: 2, OWNER: 3 };
+const ROLE_RANK: Record<AdminRole, number> = { SUPPORT: 1, OPS: 2, OWNER: 3, PARTNER: 0 };
+
+/** Internal admin routes are for OWNER/OPS/SUPPORT — partners use /partner. */
+const ADMIN_ROLES: AdminRole[] = ["OWNER", "OPS", "SUPPORT"];
 
 export async function requireAdmin(
   req: FastifyRequest,
@@ -69,6 +72,10 @@ export async function requireAdmin(
   const role: AdminRole = (row?.role as AdminRole) ?? (devBypass ? "OWNER" : "OPS");
   const name = row?.name ?? (devBypass ? "Dev Admin" : "Admin");
 
+  if (role === "PARTNER") {
+    throw new AppError(403, "FORBIDDEN_ROLE", "Vendor logins use the partner portal, not the admin panel.");
+  }
+
   if (minRoles && minRoles.length > 0) {
     const ok = minRoles.some((r) => ROLE_RANK[role] >= ROLE_RANK[r]);
     if (!ok) {
@@ -76,7 +83,33 @@ export async function requireAdmin(
     }
   }
 
-  return { userId, role, name };
+  return { userId, role, name, partnerId: row?.partnerId ?? null };
+}
+
+/**
+ * Partner portal guard — resolves the vendor identity behind the Clerk
+ * session. Everything under /api/partner is scoped to that partnerId.
+ */
+export async function requirePartner(req: FastifyRequest): Promise<AdminIdentity & { partnerId: string }> {
+  const e = env();
+  let userId: string | null = null;
+  try {
+    const auth = await verifyClerkToken(req);
+    userId = auth?.userId ?? null;
+  } catch {
+    userId = null;
+  }
+  if (!userId) {
+    throw new AppError(401, "UNAUTHENTICATED", "Sign in to use the vendor portal.");
+  }
+
+  const db = getDb(e.DATABASE_URL);
+  const [row] = await db.select().from(adminUsers).where(eq(adminUsers.clerkUserId, userId)).limit(1);
+
+  if (!row || row.role !== "PARTNER" || !row.partnerId || !row.active) {
+    throw new AppError(403, "FORBIDDEN", "No vendor portal access for this account.");
+  }
+  return { userId, role: "PARTNER", name: row.name, partnerId: row.partnerId };
 }
 
 /** Append an admin action to the audit trail. Never throws into the route. */

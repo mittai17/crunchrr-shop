@@ -1080,20 +1080,55 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const { id } = req.params as { id: string };
     const body = z
       .object({
-        role: z.enum(["OWNER", "OPS", "SUPPORT"]).optional(),
+        role: z.enum(["OWNER", "OPS", "SUPPORT", "PARTNER"]).optional(),
         name: z.string().min(1).max(80).optional(),
         active: z.boolean().optional(),
+        partnerId: z.enum(PARTNER_IDS).optional(),
       })
       .parse(req.body);
     const db = getDb(env().DATABASE_URL);
+    const updates = Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined));
     const updated = await db
       .update(adminUsers)
-      .set(Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined)))
+      .set(updates)
       .where(eq(adminUsers.id, id))
       .returning({ id: adminUsers.id, role: adminUsers.role });
     if (!updated[0]) throw new NotFoundError("Admin", id);
-    await logAdminAction(admin, "TEAM_UPDATE", id, body);
+    await logAdminAction(admin, "TEAM_UPDATE", id, updates);
     return { ok: true };
+  });
+
+  /** Vendor portal onboarding: bind a Clerk user to a partner identity. */
+  app.post("/api/admin/team/partner-login", async (req) => {
+    const admin = await requireAdmin(req, ["OWNER"]);
+    const body = z
+      .object({
+        clerkUserId: z.string().min(6).max(64),
+        name: z.string().min(1).max(80),
+        email: z.string().email().max(120),
+        partnerId: z.enum(PARTNER_IDS),
+      })
+      .parse(req.body);
+    const db = getDb(env().DATABASE_URL);
+    const [row] = await db
+      .insert(adminUsers)
+      .values({
+        clerkUserId: body.clerkUserId,
+        name: body.name,
+        email: body.email,
+        role: "PARTNER",
+        partnerId: body.partnerId,
+      })
+      .onConflictDoUpdate({
+        target: adminUsers.clerkUserId,
+        set: { name: body.name, email: body.email, role: "PARTNER", partnerId: body.partnerId, active: true },
+      })
+      .returning();
+    await logAdminAction(admin, "PARTNER_LOGIN_CREATE", body.partnerId, {
+      clerkUserId: body.clerkUserId,
+      email: body.email,
+    });
+    return { ok: true, member: row };
   });
 
   /* ---------------------------------------------------------------- */

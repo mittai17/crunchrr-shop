@@ -407,14 +407,17 @@ export const orderEventRelations = relations(orderEvents, ({ one }) => ({
 /* Admin platform v2 — team roles, audit, social studio                */
 /* ------------------------------------------------------------------ */
 
-/** Admin team. role is text (OWNER/OPS/SUPPORT) to avoid enum churn. */
+/** Admin team. role is text (OWNER/OPS/SUPPORT/PARTNER) to avoid enum churn. */
 export const adminUsers = pgTable("admin_users", {
   id: uuid("id").primaryKey().defaultRandom(),
   clerkUserId: text("clerk_user_id").notNull().unique(),
   name: text("name").notNull(),
   email: text("email").notNull(),
-  /** OWNER: everything · OPS: fulfillment+catalog · SUPPORT: read + notes */
+  /** OWNER: everything · OPS: fulfillment+catalog · SUPPORT: read-only ·
+   *  PARTNER: scoped to /partner (their vendor's splits only). */
   role: text("role").notNull().default("OPS"),
+  /** Set when role = PARTNER — the vendor this login fulfills for. */
+  partnerId: varchar("partner_id", { length: 20 }),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

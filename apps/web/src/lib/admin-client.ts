@@ -165,6 +165,8 @@ export type TeamAdmin = {
   name: string;
   email: string;
   role: string;
+  /** Set when role = PARTNER — the vendor this login fulfills for. */
+  partnerId: string | null;
   active: boolean;
   createdAt: string;
 };
