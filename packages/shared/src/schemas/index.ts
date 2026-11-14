@@ -13,7 +13,16 @@ import { z } from "zod";
 /* ------------------------------------------------------------------ */
 
 /** Fulfilment partners integrated with Crunchrr. */
-export const PARTNER_IDS = ["QIKINK", "PRINTROVE", "IN_HOUSE"] as const;
+export const PARTNER_IDS = [
+  "QIKINK",
+  "PRINTROVE",
+  "INKMONK",
+  "BLINKSTORE",
+  "PRINTFUL",
+  "PRINTIFY",
+  "GELATO",
+  "IN_HOUSE",
+] as const;
 export type PartnerId = (typeof PARTNER_IDS)[number];
 
 /** Lifecycle of an order at Crunchrr level. */
@@ -58,9 +67,43 @@ export type ProductSize = (typeof PRODUCT_SIZES)[number];
 export const PAYMENT_PROVIDERS = ["RAZORPAY", "CASHFREE"] as const;
 export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number];
 
-/** ISO-4217 numeric currencies the platform settles in. */
-export const CURRENCY = z.enum(["INR", "USD"]);
-export type Currency = z.infer<typeof CURRENCY>;
+/** ISO-4217 currencies the platform settles in (driven by shipping zones). */
+export const CURRENCY_CODES = [
+  "USD",
+  "INR",
+  "GBP",
+  "EUR",
+  "AED",
+  "AUD",
+  "CAD",
+  "SGD",
+] as const;
+export const CURRENCY = z.enum(CURRENCY_CODES);
+export type Currency = (typeof CURRENCY_CODES)[number];
+
+/** Minor-unit decimal places per currency (JPY-style 0-decimal excluded). */
+export const CURRENCY_DECIMALS: Record<Currency, 2> = {
+  USD: 2,
+  INR: 2,
+  GBP: 2,
+  EUR: 2,
+  AED: 2,
+  AUD: 2,
+  CAD: 2,
+  SGD: 2,
+};
+
+/** Display symbols for checkout + admin surfaces. */
+export const CURRENCY_SYMBOLS: Record<Currency, string> = {
+  USD: "$",
+  INR: "₹",
+  GBP: "£",
+  EUR: "€",
+  AED: "AED ",
+  AUD: "A$",
+  CAD: "C$",
+  SGD: "S$",
+};
 
 /* ------------------------------------------------------------------ */
 /* Product / catalog                                                   */
@@ -250,7 +293,7 @@ export const orderSummarySchema = z.object({
   orderNumber: z.string(),
   status: z.enum(ORDER_STATUSES),
   grandTotalMinor: z.number().int().nonnegative(),
-  currency: z.enum(["USD", "INR"]),
+  currency: CURRENCY,
   itemCount: z.number().int().positive(),
   previewLine: z.string(),
   createdAt: z.string(),
@@ -375,3 +418,170 @@ export const apiErrorSchema = z.object({
   }),
 });
 export type ApiError = z.infer<typeof apiErrorSchema>;
+
+/* ------------------------------------------------------------------ */
+/* Shipping zones (multi-country)                                      */
+/* ------------------------------------------------------------------ */
+
+export const ZONE_COUNTRIES = [
+  "US",
+  "IN",
+  "GB",
+  "DE",
+  "FR",
+  "AE",
+  "AU",
+  "CA",
+  "SG",
+] as const;
+
+export const zoneSchema = z.object({
+  id: z.string(),
+  countryCode: z.string().length(2),
+  countryName: z.string().min(1),
+  currency: CURRENCY,
+  /** 1 USD (major unit) = fxFromUsd zone-major units. */
+  fxFromUsd: z.number().positive(),
+  shippingFeeMinor: z.number().int().nonnegative(),
+  priorityFeeMinor: z.number().int().nonnegative(),
+  freeThresholdMinor: z.number().int().nonnegative(),
+  /** Basis points (1800 = 18%). */
+  taxBps: z.number().int().nonnegative(),
+  active: z.boolean(),
+  sortOrder: z.number().int(),
+});
+export type Zone = z.infer<typeof zoneSchema>;
+
+/** Public shape for the checkout country selector (no internal ids). */
+export const publicZoneSchema = zoneSchema.omit({ id: true, sortOrder: true });
+export type PublicZone = z.infer<typeof publicZoneSchema>;
+
+export const zoneUpsertSchema = z.object({
+  countryCode: z.string().length(2).regex(/^[A-Z]{2}$/),
+  countryName: z.string().min(1).max(80),
+  currency: CURRENCY,
+  fxFromUsd: z.number().positive().max(100000),
+  shippingFeeMinor: z.number().int().nonnegative(),
+  priorityFeeMinor: z.number().int().nonnegative(),
+  freeThresholdMinor: z.number().int().nonnegative(),
+  taxBps: z.number().int().min(0).max(10000),
+  active: z.boolean().default(true),
+  sortOrder: z.number().int().default(100),
+});
+export type ZoneUpsert = z.infer<typeof zoneUpsertSchema>;
+
+/* ------------------------------------------------------------------ */
+/* Promos                                                              */
+/* ------------------------------------------------------------------ */
+
+export const promoSchema = z.object({
+  code: z.string().min(2).max(40),
+  percentOff: z.number().int().min(1).max(90),
+  label: z.string().min(1).max(80),
+  active: z.boolean(),
+  usedCount: z.number().int().nonnegative(),
+});
+export type Promo = z.infer<typeof promoSchema>;
+
+export const publicPromoSchema = promoSchema.omit({ usedCount: true });
+export type PublicPromo = z.infer<typeof publicPromoSchema>;
+
+export const promoUpsertSchema = promoSchema.omit({ usedCount: true }).extend({
+  active: z.boolean().default(true),
+});
+export type PromoUpsert = z.infer<typeof promoUpsertSchema>;
+
+/* ------------------------------------------------------------------ */
+/* Admin surfaces                                                      */
+/* ------------------------------------------------------------------ */
+
+export const adminOverviewSchema = z.object({
+  orders: z.object({
+    total: z.number().int().nonnegative(),
+    last7d: z.number().int().nonnegative(),
+    pendingPayment: z.number().int().nonnegative(),
+    fulfilmentQueue: z.number().int().nonnegative(),
+    partnerRejected: z.number().int().nonnegative(),
+  }),
+  /** Realized revenue by currency (paid statuses only). */
+  revenue: z.array(
+    z.object({
+      currency: CURRENCY,
+      minor: z.number().int().nonnegative(),
+      orders: z.number().int().nonnegative(),
+    }),
+  ),
+  /** Last 7 days, USD-equivalent (via zone fx) for one clean sparkline. */
+  series7d: z.array(
+    z.object({
+      date: z.string(),
+      minorUsd: z.number().int().nonnegative(),
+      orders: z.number().int().nonnegative(),
+    }),
+  ),
+  lowStock: z.array(
+    z.object({
+      sku: z.string(),
+      name: z.string(),
+      colorway: z.string(),
+      size: z.string(),
+      stock: z.number().int(),
+      partnerId: z.string(),
+    }),
+  ),
+  webhookFailures24h: z.number().int().nonnegative(),
+});
+export type AdminOverview = z.infer<typeof adminOverviewSchema>;
+
+export const adminOrderRowSchema = z.object({
+  id: z.string(),
+  orderNumber: z.string(),
+  email: z.string(),
+  status: z.enum(ORDER_STATUSES),
+  currency: CURRENCY,
+  grandTotalMinor: z.number().int().nonnegative(),
+  itemCount: z.number().int().nonnegative(),
+  partnerIds: z.array(z.string()),
+  createdAt: z.string(),
+});
+export type AdminOrderRow = z.infer<typeof adminOrderRowSchema>;
+
+export const adminSplitRowSchema = z.object({
+  id: z.string(),
+  orderNumber: z.string(),
+  orderId: z.string(),
+  partnerId: z.string(),
+  status: z.enum(SPLIT_STATUSES),
+  partnerOrderId: z.string().nullable(),
+  itemCount: z.number().int().positive(),
+  previewLine: z.string(),
+  createdAt: z.string(),
+});
+export type AdminSplitRow = z.infer<typeof adminSplitRowSchema>;
+
+export const adminWebhookRowSchema = z.object({
+  id: z.string(),
+  provider: z.string(),
+  event: z.string().nullable(),
+  outcome: z.string(),
+  createdAt: z.string(),
+});
+export type AdminWebhookRow = z.infer<typeof adminWebhookRowSchema>;
+
+export const adminPartnerSchema = z.object({
+  partnerId: z.string(),
+  configured: z.boolean(),
+  active: z.boolean(),
+  apiBaseUrl: z.string(),
+  authHint: z.string().nullable(),
+  clientId: z.string().nullable(),
+  /** Secret presence only — secrets never round-trip to the client. */
+  hasSecret: z.boolean(),
+  stats: z.object({
+    total: z.number().int().nonnegative(),
+    open: z.number().int().nonnegative(),
+    rejected: z.number().int().nonnegative(),
+    shipped: z.number().int().nonnegative(),
+  }),
+});
+export type AdminPartner = z.infer<typeof adminPartnerSchema>;

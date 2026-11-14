@@ -21,8 +21,10 @@ export type PartnerDispatchResult = {
 };
 
 export interface PartnerAdapter {
-  readonly id: "QIKINK" | "PRINTROVE" | "IN_HOUSE";
+  readonly id: string;
   /** True when credentials are present and the adapter can run. */
-  isConfigured(): boolean;
+  isConfigured(): Promise<boolean>;
+  /** Lightweight reachability/auth probe for the admin panel. */
+  ping(): Promise<{ ok: boolean; message: string }>;
   dispatch(input: PartnerDispatchInput): Promise<PartnerDispatchResult>;
 }

@@ -35,7 +35,16 @@ export const productCategoryEnum = pgEnum("product_category", [
   "ARTIFACTS",
 ]);
 
-export const partnerIdEnum = pgEnum("partner_id", ["QIKINK", "PRINTROVE", "IN_HOUSE"]);
+export const partnerIdEnum = pgEnum("partner_id", [
+  "QIKINK",
+  "PRINTROVE",
+  "INKMONK",
+  "BLINKSTORE",
+  "PRINTFUL",
+  "PRINTIFY",
+  "GELATO",
+  "IN_HOUSE",
+]);
 
 export const productSizeEnum = pgEnum("product_size", [
   "XS",
@@ -298,8 +307,51 @@ export const partnerCredentials = pgTable("partner_credentials", {
   apiBaseUrl: text("api_base_url").notNull(),
   /** Which credentials are configured — never the secret itself. */
   authHint: varchar("auth_hint", { length: 80 }),
+  /** Admin-editable credentials; adapters prefer these over env vars. */
+  clientId: text("client_id"),
+  clientSecret: text("client_secret"),
   active: boolean("active").notNull().default(true),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/* ------------------------------------------------------------------ */
+/* Multi-country shipping zones                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One row per supported destination country. Catalog prices are stored in
+ * base USD minor units; each zone carries the FX multiplier (per major
+ * unit) plus its own fees/tax so checkout charges in the local currency.
+ */
+export const shippingZones = pgTable("shipping_zones", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** ISO-3166 alpha-2, e.g. "US", "IN". */
+  countryCode: varchar("country_code", { length: 2 }).notNull().unique(),
+  countryName: varchar("country_name", { length: 80 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull(),
+  /** 1 USD (major) = fxFromUsd zone-major units. */
+  fxFromUsd: numeric("fx_from_usd", { precision: 12, scale: 6 }).notNull(),
+  shippingFeeMinor: integer("shipping_fee_minor").notNull(),
+  priorityFeeMinor: integer("priority_fee_minor").notNull(),
+  freeThresholdMinor: integer("free_threshold_minor").notNull(),
+  /** Tax in basis points (1800 = 18%). */
+  taxBps: integer("tax_bps").notNull(),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(100),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/* ------------------------------------------------------------------ */
+/* Promo codes (admin-managed, replaces the hardcoded map)             */
+/* ------------------------------------------------------------------ */
+
+export const promos = pgTable("promos", {
+  code: varchar("code", { length: 40 }).primaryKey(),
+  percentOff: integer("percent_off").notNull(),
+  label: varchar("label", { length: 80 }).notNull(),
+  active: boolean("active").notNull().default(true),
+  usedCount: integer("used_count").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /* ------------------------------------------------------------------ */

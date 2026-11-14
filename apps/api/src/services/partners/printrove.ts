@@ -7,8 +7,8 @@
  * obviously-demo reference for later reconciliation.
  */
 import type { PartnerAdapter, PartnerDispatchInput, PartnerDispatchResult } from "./types.js";
-import { env } from "../../config/env.js";
 import { PartnerError } from "../../lib/errors.js";
+import { resolvePartnerConfig } from "./config.js";
 
 type PrintroveLine = {
   name: string;
@@ -41,25 +41,36 @@ type PrintroveOrderPayload = {
 export class PrintroveAdapter implements PartnerAdapter {
   readonly id = "PRINTROVE" as const;
 
-  isConfigured(): boolean {
-    const e = env();
-    return Boolean(e.PRINTROVE_EMAIL && e.PRINTROVE_PASSWORD);
+  async isConfigured(): Promise<boolean> {
+    return (await resolvePartnerConfig(this.id)).configured;
+  }
+
+  async ping(): Promise<{ ok: boolean; message: string }> {
+    const cfg = await resolvePartnerConfig(this.id);
+    if (!cfg.configured) {
+      return { ok: true, message: "Simulated — no credentials configured" };
+    }
+    try {
+      await this.getToken(cfg);
+      return { ok: true, message: "Auth OK (token issued)" };
+    } catch (err) {
+      return { ok: false, message: `Auth failed: ${(err as Error).message.slice(0, 120)}` };
+    }
   }
 
   /** Login → JWT. Cached per process; Printrove tokens last ~24h. */
   private token: { value: string; expiresAt: number } | null = null;
 
-  private async getToken(): Promise<string> {
-    const e = env();
+  private async getToken(cfg: { apiBaseUrl: string; clientId: string | null; clientSecret: string | null }): Promise<string> {
     if (this.token && this.token.expiresAt > Date.now() + 60_000) {
       return this.token.value;
     }
-    const res = await fetch(`${e.PRINTROVE_API_BASE}/api/v1/channels/tokens`, {
+    const res = await fetch(`${cfg.apiBaseUrl}/api/v1/channels/tokens`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: e.PRINTROVE_EMAIL ?? "",
-        password: e.PRINTROVE_PASSWORD ?? "",
+        email: cfg.clientId ?? "",
+        password: cfg.clientSecret ?? "",
       }),
     });
     if (!res.ok) {
@@ -73,7 +84,7 @@ export class PrintroveAdapter implements PartnerAdapter {
 
   async dispatch(input: PartnerDispatchInput): Promise<PartnerDispatchResult> {
     const { order, lines } = input;
-    const e = env();
+    const cfg = await resolvePartnerConfig(this.id);
 
     const payload: PrintroveOrderPayload = {
       source: "api",
@@ -101,15 +112,15 @@ export class PrintroveAdapter implements PartnerAdapter {
       shipping_method: order.deliveryMethod === "PRIORITY" ? "Express" : "Standard",
     };
 
-    if (!this.isConfigured()) {
+    if (!(await this.isConfigured())) {
       return this.simulate(payload, order.orderNumber);
     }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15_000);
     try {
-      const token = await this.getToken();
-      const res = await fetch(`${e.PRINTROVE_API_BASE}/api/v1/channels/orders`, {
+      const token = await this.getToken(cfg);
+      const res = await fetch(`${cfg.apiBaseUrl}/api/v1/channels/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

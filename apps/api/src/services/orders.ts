@@ -21,12 +21,14 @@ import {
   type OrderRow,
   type PartnerIdType,
 } from "../db/schema.js";
-import { computeTotals, formatMinor, promoFor, type Totals } from "../lib/money.js";
+import { computeZoneTotals, convertUsdMinorToZone, formatMinor, type Totals, type ZoneMoney } from "../lib/money.js";
+import { getActivePromo, bumpPromoUsage } from "./promos.js";
+import { resolveActiveZone } from "./zones.js";
 import { AppError, ConflictError, NotFoundError, ValidationError } from "../lib/errors.js";
 import { createRazorpayOrder, isRazorpayConfigured } from "./payments/razorpay.js";
 import { createCashfreeOrder, isCashfreeConfigured } from "./payments/cashfree.js";
 import { env, isDemoPayments } from "../config/env.js";
-import type { CheckoutRequest } from "@crunchrr/shared";
+import type { CheckoutRequest, Currency } from "@crunchrr/shared";
 
 export type CheckoutResult = {
   order: OrderRow;
@@ -35,7 +37,7 @@ export type CheckoutResult = {
     provider: "RAZORPAY" | "CASHFREE";
     gatewayOrderId: string;
     amountMinor: number;
-    currency: "USD" | "INR";
+    currency: Currency;
     publicKeyId?: string;
     demoMode: boolean;
   };
@@ -107,27 +109,28 @@ export async function createCheckout(input: CheckoutRequest): Promise<CheckoutRe
     });
   }
 
-  /* ---- 2. Totals from server prices ---- */
-  const currency = input.clientCurrency;
+  /* ---- 2. Totals from server prices, in the destination zone currency ---- */
+  const zone = await resolveActiveZone(input.shippingAddress.country);
+  // Per-line conversion first so the persisted lines and the subtotal agree.
   const itemsSubtotalMinor = resolvedLines.reduce(
-    (sum, l) => sum + l.priceMinor * l.quantity,
+    (sum, l) => sum + convertUsdMinorToZone(l.priceMinor, zone) * l.quantity,
     0,
   );
-  const promo = promoFor(input.promoCode);
+  const promo = await getActivePromo(input.promoCode ?? "");
   if (input.promoCode && !promo) {
     throw new ValidationError(`Promo code '${input.promoCode}' is not valid`);
   }
-  const totals = computeTotals({
-    currency,
+  const totals = computeZoneTotals({
+    zone,
     itemsSubtotalMinor,
     deliveryMethod: input.deliveryMethod,
-    promoCode: input.promoCode,
+    percentOff: promo?.percentOff ?? null,
   });
 
   /* ---- 3. Gateway order (when configured) ---- */
   const demoMode =
     isDemoPayments(env()) ||
-    (currency === "USD" ? !isRazorpayConfigured() : !isCashfreeConfigured());
+    (totals.currency === "INR" ? !isCashfreeConfigured() : !isRazorpayConfigured());
 
   const orderNumber = generateOrderNumber();
 
@@ -138,22 +141,12 @@ export async function createCheckout(input: CheckoutRequest): Promise<CheckoutRe
   if (demoMode) {
     provider = "RAZORPAY";
     gatewayOrderId = `demo_${orderNumber}`;
-  } else if (currency === "USD" && isRazorpayConfigured()) {
-    provider = "RAZORPAY";
-    const rzp = await createRazorpayOrder({
-      amountMinor: totals.grandTotalMinor,
-      currency,
-      receipt: orderNumber,
-      notes: { orderNumber },
-    });
-    gatewayOrderId = rzp.id;
-    publicKeyId = env().RAZORPAY_KEY_ID;
-  } else if (isCashfreeConfigured()) {
+  } else if (totals.currency === "INR" && isCashfreeConfigured()) {
     provider = "CASHFREE";
     const cf = await createCashfreeOrder({
       orderNumber,
       amountMinor: totals.grandTotalMinor,
-      currency,
+      currency: totals.currency,
       customer: {
         name: input.customer.name,
         email: input.customer.email,
@@ -161,6 +154,16 @@ export async function createCheckout(input: CheckoutRequest): Promise<CheckoutRe
       },
     });
     gatewayOrderId = cf.order_id;
+  } else if (isRazorpayConfigured()) {
+    provider = "RAZORPAY";
+    const rzp = await createRazorpayOrder({
+      amountMinor: totals.grandTotalMinor,
+      currency: totals.currency,
+      receipt: orderNumber,
+      notes: { orderNumber },
+    });
+    gatewayOrderId = rzp.id;
+    publicKeyId = env().RAZORPAY_KEY_ID;
   } else {
     // Fallback to demo rather than failing checkout for a storefront visit.
     provider = "RAZORPAY";
@@ -183,7 +186,7 @@ export async function createCheckout(input: CheckoutRequest): Promise<CheckoutRe
       shipPostalCode: input.shippingAddress.postalCode,
       shipCountry: input.shippingAddress.country,
       deliveryMethod: input.deliveryMethod,
-      currency,
+      currency: totals.currency,
       itemsSubtotalMinor: totals.itemsSubtotalMinor,
       discountMinor: totals.discountMinor,
       shippingMinor: totals.shippingMinor,
@@ -199,6 +202,10 @@ export async function createCheckout(input: CheckoutRequest): Promise<CheckoutRe
     throw new AppError(500, "ORDER_CREATE_FAILED", "Order row insert failed");
   }
 
+  if (input.promoCode && promo) {
+    await bumpPromoUsage(input.promoCode);
+  }
+
   await db.insert(orderLines).values(
     resolvedLines.map((l) => ({
       orderId: order.id,
@@ -208,7 +215,7 @@ export async function createCheckout(input: CheckoutRequest): Promise<CheckoutRe
       size: l.size,
       colorway: l.colorway,
       quantity: l.quantity,
-      priceMinor: l.priceMinor,
+      priceMinor: convertUsdMinorToZone(l.priceMinor, zone),
       costMinor: l.costMinor,
       partnerId: l.partnerId,
     })),
@@ -232,7 +239,7 @@ export async function createCheckout(input: CheckoutRequest): Promise<CheckoutRe
       provider,
       gatewayOrderId,
       amountMinor: totals.grandTotalMinor,
-      currency,
+      currency: totals.currency,
       publicKeyId: demoMode ? undefined : publicKeyId,
       demoMode,
     },
@@ -283,7 +290,7 @@ export async function confirmPaymentAndDispatch(args: {
     });
     await db.update(orders).set({ status: "FAILED", updatedAt: new Date() }).where(eq(orders.id, order.id));
     throw new ConflictError(
-      `Payment amount mismatch for ${order.orderNumber}: expected ${formatMinor(order.grandTotalMinor, order.currency as "USD" | "INR")}, received ${formatMinor(args.amountMinor, order.currency as "USD" | "INR")}`,
+      `Payment amount mismatch for ${order.orderNumber}: expected ${formatMinor(order.grandTotalMinor, order.currency as Currency)}, received ${formatMinor(args.amountMinor, order.currency as Currency)}`,
     );
   }
 
@@ -352,6 +359,14 @@ export async function confirmPaymentAndDispatch(args: {
   const finalOrder = await db.query.orders.findFirst({ where: eq(orders.id, order.id) });
   if (!finalOrder) throw new NotFoundError("Order", args.orderId);
   return finalOrder;
+}
+
+/** Admin re-dispatch entry point (fulfillment queue retry). */
+export async function dispatchSplitById(splitId: string): Promise<void> {
+  const db = getDb(env().DATABASE_URL);
+  const [split] = await db.select().from(orderSplits).where(eq(orderSplits.id, splitId)).limit(1);
+  if (!split) throw new NotFoundError("Split", splitId);
+  await dispatchSplit(splitId, split.partnerId);
 }
 
 async function dispatchSplit(splitId: string, partnerId: PartnerIdType): Promise<void> {
@@ -464,7 +479,7 @@ export async function serializeOrder(orderId: string) {
     userId: order.userId,
     email: order.email,
     totals: {
-      currency: order.currency as "USD" | "INR",
+      currency: order.currency as Currency,
       itemsSubtotalMinor: order.itemsSubtotalMinor,
       discountMinor: order.discountMinor,
       shippingMinor: order.shippingMinor,
@@ -521,7 +536,7 @@ export async function listOrderSummariesByUser(userId: string) {
       orderNumber: order.orderNumber,
       status: order.status,
       grandTotalMinor: order.grandTotalMinor,
-      currency: order.currency as "USD" | "INR",
+      currency: order.currency as Currency,
       itemCount: order.lines.reduce((sum, l) => sum + l.quantity, 0),
       previewLine,
       createdAt: order.createdAt.toISOString(),

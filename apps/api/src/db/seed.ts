@@ -13,8 +13,11 @@ import {
   productImages,
   productVariants,
   partnerCredentials,
+  promos,
+  shippingZones,
 } from "./schema.js";
 import { sql } from "drizzle-orm";
+import type { PartnerId } from "@crunchrr/shared";
 
 const IMG = (hash: string) => `/products/img_${hash}.jpg`;
 
@@ -43,7 +46,7 @@ type SeedProduct = {
   colorways: Array<{
     colorway: string;
     colorHex: string;
-    partner: "QIKINK" | "PRINTROVE" | "IN_HOUSE";
+    partner: PartnerId;
     partnerCostMinor: number;
     priceMinor: number;
     comparePriceMinor?: number | null;
@@ -785,11 +788,76 @@ async function main() {
       authHint: process.env.PRINTROVE_EMAIL ? "email configured" : "not configured",
     },
     {
+      partnerId: "INKMONK",
+      apiBaseUrl: "https://api.inkmonk.com",
+      authHint: "not configured — simulated dispatch",
+    },
+    {
+      partnerId: "BLINKSTORE",
+      apiBaseUrl: "https://api.blinkstore.org",
+      authHint: "not configured — simulated dispatch",
+    },
+    {
+      partnerId: "PRINTFUL",
+      apiBaseUrl: "https://api.printful.com",
+      authHint: "not configured — simulated dispatch",
+    },
+    {
+      partnerId: "PRINTIFY",
+      apiBaseUrl: "https://api.printify.com",
+      authHint: "not configured — simulated dispatch",
+    },
+    {
+      partnerId: "GELATO",
+      apiBaseUrl: "https://order.gelato.com",
+      authHint: "not configured — simulated dispatch",
+    },
+    {
       partnerId: "IN_HOUSE",
       apiBaseUrl: "https://ops.crunchrr.internal",
       authHint: "manual fulfillment",
     },
-  ]);
+  ]).onConflictDoNothing();
+
+  /* ---------------------------------------------------------------- */
+  /* Shipping zones (multi-country). US mirrors the legacy constants    */
+  /* exactly so the default USD flow is unchanged; India mirrors the   */
+  /* legacy INR constants. Others are sensible storefront defaults.    */
+  /* ---------------------------------------------------------------- */
+  await db
+    .insert(shippingZones)
+    .values([
+      { countryCode: "US", countryName: "United States", currency: "USD", fxFromUsd: "1",
+        shippingFeeMinor: 1200, priorityFeeMinor: 1200, freeThresholdMinor: 7500, taxBps: 700, sortOrder: 10 },
+      { countryCode: "IN", countryName: "India", currency: "INR", fxFromUsd: "83",
+        shippingFeeMinor: 20000, priorityFeeMinor: 25000, freeThresholdMinor: 500000, taxBps: 1800, sortOrder: 20 },
+      { countryCode: "GB", countryName: "United Kingdom", currency: "GBP", fxFromUsd: "0.79",
+        shippingFeeMinor: 1000, priorityFeeMinor: 3000, freeThresholdMinor: 6000, taxBps: 2000, sortOrder: 30 },
+      { countryCode: "DE", countryName: "Germany", currency: "EUR", fxFromUsd: "0.92",
+        shippingFeeMinor: 1000, priorityFeeMinor: 3000, freeThresholdMinor: 6000, taxBps: 1900, sortOrder: 40 },
+      { countryCode: "FR", countryName: "France", currency: "EUR", fxFromUsd: "0.92",
+        shippingFeeMinor: 1000, priorityFeeMinor: 3000, freeThresholdMinor: 6000, taxBps: 1900, sortOrder: 50 },
+      { countryCode: "AE", countryName: "United Arab Emirates", currency: "AED", fxFromUsd: "3.67",
+        shippingFeeMinor: 1500, priorityFeeMinor: 5000, freeThresholdMinor: 8000, taxBps: 500, sortOrder: 60 },
+      { countryCode: "AU", countryName: "Australia", currency: "AUD", fxFromUsd: "1.52",
+        shippingFeeMinor: 1400, priorityFeeMinor: 4000, freeThresholdMinor: 7000, taxBps: 1000, sortOrder: 70 },
+      { countryCode: "CA", countryName: "Canada", currency: "CAD", fxFromUsd: "1.36",
+        shippingFeeMinor: 1300, priorityFeeMinor: 4000, freeThresholdMinor: 6500, taxBps: 1300, sortOrder: 80 },
+      { countryCode: "SG", countryName: "Singapore", currency: "SGD", fxFromUsd: "1.34",
+        shippingFeeMinor: 1200, priorityFeeMinor: 3500, freeThresholdMinor: 6000, taxBps: 900, sortOrder: 90 },
+    ])
+    .onConflictDoNothing();
+
+  /* ---------------------------------------------------------------- */
+  /* Promo codes — same two codes the storefront shipped with.         */
+  /* ---------------------------------------------------------------- */
+  await db
+    .insert(promos)
+    .values([
+      { code: "TRIBE15", percentOff: 15, label: "Drop Privilege" },
+      { code: "DROP004", percentOff: 10, label: "Batch 004" },
+    ])
+    .onConflictDoNothing();
 
   console.log(`Seed complete: ${CATALOG.length} products.`);
   process.exit(0);

@@ -68,7 +68,7 @@ export default function RootLayout({
         variables: {
           colorPrimary: "#F45B50",
           colorBackground: "#FAF8F6",
-          colorText: "#121212",
+          colorForeground: "#121212",
           fontFamily: "'Plus Jakarta Sans', sans-serif",
         },
       }}

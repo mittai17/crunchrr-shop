@@ -18,6 +18,11 @@ const serverEnvSchema = z.object({
   // Comma-separated list, e.g. "http://localhost:3000,https://crunchrr.shop"
   CORS_ORIGINS: z.string().default("http://localhost:3000"),
 
+  // Admin panel gate — allowlisted Clerk user ids (comma separated).
+  ADMIN_CLERK_USER_IDS: z.string().default(""),
+  // Dev convenience: any signed-in user may access admin APIs outside prod.
+  ADMIN_DEV_BYPASS: boolish.default(false),
+
   // Neon Postgres (pooled connection string)
   DATABASE_URL: z
     .string()

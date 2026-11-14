@@ -8,16 +8,19 @@
  */
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CheckoutRequest } from "@crunchrr/shared";
 import { useCart, type CartItem } from "@/lib/cart";
-import { cn, formatUsd } from "@/lib/utils";
+import { cn, formatMoney } from "@/lib/utils";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
 
 type CheckoutSuccess = {
   orderNumber: string;
   totalMinor: number;
+  currency: string;
   demo: boolean;
   splits: Array<{
     partnerId: string;
@@ -27,12 +30,39 @@ type CheckoutSuccess = {
   }>;
 };
 
-/* Client-side totals preview (mirrors API rules; API re-computes). */
-const PROMOS: Record<string, number> = { TRIBE15: 15, DROP004: 10 };
-const FREE_SHIP_THRESHOLD = 7_500;
-const FLAT_SHIPPING = 1_200;
-const PRIORITY_SHIPPING = 2_500;
-const TAX_RATE = 0.07;
+/* Server-shaped shipping zone (public projection of the admin zone table). */
+type StoreZone = {
+  countryCode: string;
+  countryName: string;
+  currency: string;
+  fxFromUsd: number;
+  shippingFeeMinor: number;
+  priorityFeeMinor: number;
+  freeThresholdMinor: number;
+  taxBps: number;
+  active: boolean;
+};
+type StorePromo = { code: string; percentOff: number; label: string; active: boolean };
+
+/*
+ * Client-side totals preview — mirrors the API's zone math (convert per
+ * line, percent discount, zone fees/threshold, bps tax). The server
+ * re-computes everything authoritatively at checkout.
+ * FALLBACK_ZONE mirrors the seeded US zone so first paint is stable.
+ */
+const FALLBACK_ZONE: StoreZone = {
+  countryCode: "US",
+  countryName: "United States",
+  currency: "USD",
+  fxFromUsd: 1,
+  shippingFeeMinor: 1200,
+  priorityFeeMinor: 1200,
+  freeThresholdMinor: 7500,
+  taxBps: 700,
+  active: true,
+};
+const convertToZone = (usdMinor: number, fx: number): number =>
+  Math.round((usdMinor / 100) * fx * 100);
 
 export default function BagPage() {
   const { items, promoCode, setPromoCode, remove, setQuantity, clear } = useCart();
@@ -42,6 +72,38 @@ export default function BagPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<CheckoutSuccess | null>(null);
+  const [zones, setZones] = useState<StoreZone[] | null>(null);
+  const [promos, setPromos] = useState<StorePromo[]>([]);
+  const [country, setCountry] = useState("US");
+
+  /* Load shipping zones + promo codes from the API. */
+  useEffect(() => {
+    const saved = window.localStorage.getItem("crunchrr.country");
+    if (saved) setCountry(saved);
+    void fetch(`${API_URL}/api/shipping/zones`)
+      .then((r) => r.json())
+      .then((d: { zones?: StoreZone[] }) => {
+        if (d.zones?.length) {
+          setZones(d.zones);
+          // If the saved country is no longer served, snap back to the first.
+          if (saved && !d.zones.some((z) => z.countryCode === saved && z.active)) {
+            setCountry(d.zones[0]?.countryCode ?? "US");
+          }
+        }
+      })
+      .catch(() => undefined); // offline preview: fallback zone keeps math sane
+    void fetch(`${API_URL}/api/promos`)
+      .then((r) => r.json())
+      .then((d: { promos?: StorePromo[] }) => {
+        if (d.promos) setPromos(d.promos);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const pickCountry = (code: string) => {
+    setCountry(code);
+    window.localStorage.setItem("crunchrr.country", code);
+  };
 
   // Fast-checkout form state
   const [form, setForm] = useState({
@@ -55,28 +117,37 @@ export default function BagPage() {
     postalCode: "",
   });
 
-  const subtotalMinor = items.reduce((sum, i) => sum + i.priceMinor * i.quantity, 0);
-  const discountMinor = promoCode
-    ? Math.round((subtotalMinor * (PROMOS[promoCode] ?? 0)) / 100)
+  /* Destination zone + preview totals (mirrors API math, in zone currency). */
+  const zone: StoreZone =
+    (zones ?? []).find((z) => z.countryCode === country && z.active) ?? FALLBACK_ZONE;
+  const zoneMinor = (usdMinor: number) => convertToZone(usdMinor, zone.fxFromUsd);
+
+  const subtotalMinor = items.reduce(
+    (sum, i) => sum + zoneMinor(i.priceMinor) * i.quantity,
+    0,
+  );
+  const appliedPromo = useMemo(
+    () => (promoCode ? promos.find((p) => p.code === promoCode && p.active) ?? null : null),
+    [promoCode, promos],
+  );
+  const discountMinor = appliedPromo
+    ? Math.round((subtotalMinor * appliedPromo.percentOff) / 100)
     : 0;
   const shippingMinor =
     delivery === "PRIORITY"
-      ? PRIORITY_SHIPPING
-      : subtotalMinor - discountMinor >= FREE_SHIP_THRESHOLD
+      ? zone.priorityFeeMinor
+      : subtotalMinor - discountMinor >= zone.freeThresholdMinor
         ? 0
-        : FLAT_SHIPPING;
-  const taxMinor = Math.round(Math.max(subtotalMinor - discountMinor, 0) * TAX_RATE);
-  const totalMinor = Math.max(subtotalMinor - discountMinor, 0) + shippingMinor + taxMinor;
-
-  const appliedPromo = useMemo(
-    () => (promoCode ? PROMOS[promoCode] ?? null : null),
-    [promoCode],
+        : zone.shippingFeeMinor;
+  const taxMinor = Math.round(
+    (Math.max(subtotalMinor - discountMinor, 0) * zone.taxBps) / 10_000,
   );
+  const totalMinor = Math.max(subtotalMinor - discountMinor, 0) + shippingMinor + taxMinor;
 
   const applyPromo = () => {
     const code = promoInput.trim().toUpperCase();
     if (!code) return;
-    if (!PROMOS[code]) {
+    if (!promos.some((p) => p.code === code && p.active)) {
       setPromoError("Code not recognized for this drop");
       return;
     }
@@ -117,15 +188,16 @@ export default function BagPage() {
           city: form.city.trim(),
           state: form.state.trim(),
           postalCode: form.postalCode.trim(),
-          country: "India",
+          country: zone.countryCode,
         },
         deliveryMethod: delivery,
-        ...(promoCode ? { promoCode } : {}),
-        clientCurrency: "USD",
+        ...(promoCode && appliedPromo ? { promoCode } : {}),
+        /* Truthful hint for the server; the zone's currency is authoritative. */
+        clientCurrency: zone.currency as CheckoutRequest["clientCurrency"],
       };
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001"}/api/orders/checkout`,
+        `${API_URL}/api/orders/checkout`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -135,7 +207,7 @@ export default function BagPage() {
       const json = (await res.json()) as {
         orderId?: string;
         orderNumber?: string;
-        totals?: { grandTotalMinor: number };
+        totals?: { grandTotalMinor: number; currency: string };
         payment?: { demoMode: boolean };
         error?: { message: string; details?: Array<{ message: string }> };
       };
@@ -152,7 +224,7 @@ export default function BagPage() {
         demo = true;
         try {
           const confirmRes = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001"}/api/orders/demo-confirm`,
+            `${API_URL}/api/orders/demo-confirm`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -181,6 +253,7 @@ export default function BagPage() {
       setSuccess({
         orderNumber: json.orderNumber,
         totalMinor: json.totals.grandTotalMinor,
+        currency: json.totals.currency,
         demo,
         splits,
       });
@@ -214,8 +287,10 @@ export default function BagPage() {
             <span className="font-display font-bold text-charcoal">
               {success.orderNumber}
             </span>{" "}
-            is locked for {formatUsd(success.totalMinor)}. Batch #09 pieces ship
-            from the depot within 24h — tracking lands in your inbox.
+            is locked for{" "}
+            {formatMoney(success.totalMinor, success.currency)}. Batch #09
+            pieces ship from the depot within 24h — tracking lands in your
+            inbox.
           </p>
 
           {success.splits.length > 0 ? (
@@ -274,7 +349,10 @@ export default function BagPage() {
         <div className="flex items-center justify-around gap-6 whitespace-nowrap font-display text-[11px] font-bold uppercase tracking-widest">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-sm">local_shipping</span>
-            <span>Complimentary standard shipping over $75.00</span>
+            <span>
+              Complimentary standard shipping over{" "}
+              {formatMoney(zone.freeThresholdMinor, zone.currency)}
+            </span>
           </div>
           <div className="hidden items-center gap-2 text-white/80 md:flex">
             <span className="material-symbols-outlined text-sm">verified_user</span>
@@ -408,6 +486,8 @@ export default function BagPage() {
                 <BagLine
                   key={item.sku}
                   item={item}
+                  currency={zone.currency}
+                  fx={zone.fxFromUsd}
                   onRemove={() => remove(item.sku)}
                   onQty={(q) => setQuantity(item.sku, q)}
                 />
@@ -440,10 +520,10 @@ export default function BagPage() {
                 {appliedPromo ? (
                   <div className="mt-3 flex items-center justify-between rounded bg-jade-tint px-4 py-2.5">
                     <span className="font-display text-xs font-bold uppercase text-jade-deep">
-                      {promoCode} — {appliedPromo}% Drop Privilege
+                      {promoCode} — {appliedPromo.percentOff}% {appliedPromo.label}
                     </span>
                     <span className="font-display text-xs font-bold text-jade-deep">
-                      −{formatUsd(discountMinor)}
+                      −{formatMoney(discountMinor, zone.currency)}
                     </span>
                   </div>
                 ) : (
@@ -489,16 +569,44 @@ export default function BagPage() {
                 Batch #09 — allocations finalize at payment.
               </p>
 
+              {/* Destination picker */}
+              <div className="mb-4">
+                <label
+                  htmlFor="bag-country"
+                  className="mb-1.5 flex items-center gap-1.5 font-display text-[10px] font-bold uppercase tracking-[0.2em] text-white/50"
+                >
+                  <span className="material-symbols-outlined text-sm">public</span>
+                  Shipping to
+                </label>
+                <select
+                  id="bag-country"
+                  value={country}
+                  onChange={(e) => pickCountry(e.target.value)}
+                  className="w-full appearance-none rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white outline-none transition-colors hover:border-white/30 focus:border-brand"
+                >
+                  {(zones ?? [FALLBACK_ZONE]).map((z) => (
+                    <option key={z.countryCode} value={z.countryCode} className="text-charcoal">
+                      {z.countryName} · {z.currency}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-[10px] text-white/40">
+                  Prices convert to {zone.currency} at checkout · tax {zone.taxBps / 100}%
+                </p>
+              </div>
+
               <div className="space-y-2.5 border-t border-white/10 pt-4 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-white/70">Subtotal ({items.length} lines)</span>
-                  <span className="font-display font-bold">{formatUsd(subtotalMinor)}</span>
+                  <span className="font-display font-bold">
+                    {formatMoney(subtotalMinor, zone.currency)}
+                  </span>
                 </div>
                 {discountMinor > 0 ? (
                   <div className="flex items-center justify-between">
                     <span className="text-white/70">Promo {promoCode}</span>
                     <span className="font-display font-bold text-jade">
-                      −{formatUsd(discountMinor)}
+                      −{formatMoney(discountMinor, zone.currency)}
                     </span>
                   </div>
                 ) : null}
@@ -507,12 +615,18 @@ export default function BagPage() {
                     {delivery === "PRIORITY" ? "Priority shipping" : "Standard shipping"}
                   </span>
                   <span className="font-display font-bold">
-                    {shippingMinor === 0 ? "Free" : formatUsd(shippingMinor)}
+                    {shippingMinor === 0
+                      ? "Free"
+                      : formatMoney(shippingMinor, zone.currency)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-white/70">Estimated tax (7%)</span>
-                  <span className="font-display font-bold">{formatUsd(taxMinor)}</span>
+                  <span className="text-white/70">
+                    Estimated tax ({zone.taxBps / 100}%)
+                  </span>
+                  <span className="font-display font-bold">
+                    {formatMoney(taxMinor, zone.currency)}
+                  </span>
                 </div>
               </div>
 
@@ -521,7 +635,7 @@ export default function BagPage() {
                   Total
                 </span>
                 <span className="font-display text-3xl font-bold tracking-tight text-brand">
-                  {formatUsd(totalMinor)}
+                  {formatMoney(totalMinor, zone.currency)}
                 </span>
               </div>
 
@@ -546,7 +660,7 @@ export default function BagPage() {
                 ) : (
                   <>
                     <span className="material-symbols-outlined text-lg">lock</span>
-                    Place Order • {formatUsd(totalMinor)}
+                    Place Order • {formatMoney(totalMinor, zone.currency)}
                   </>
                 )}
               </button>
@@ -667,11 +781,19 @@ export default function BagPage() {
                       type="text"
                       value={form.postalCode}
                       onChange={update("postalCode")}
-                      placeholder="ZIP"
+                      placeholder="Postal code"
                       aria-label="Postal code"
                       className="w-full rounded border border-neutral-200 px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-charcoal-light focus:border-brand"
                     />
                   </div>
+                  <p className="flex items-center gap-1.5 text-[11px] text-charcoal-muted">
+                    <span className="material-symbols-outlined text-sm text-brand">public</span>
+                    Delivering to{" "}
+                    <span className="font-display font-bold uppercase text-charcoal">
+                      {zone.countryName}
+                    </span>{" "}
+                    · change it in the order summary
+                  </p>
                 </fieldset>
 
                 {/* Delivery */}
@@ -708,9 +830,9 @@ export default function BagPage() {
                       <span className="flex items-center justify-between font-display text-xs font-bold uppercase text-charcoal">
                         Standard Drop
                         <span className="text-charcoal">
-                          {subtotalMinor - discountMinor >= FREE_SHIP_THRESHOLD
+                          {subtotalMinor - discountMinor >= zone.freeThresholdMinor
                             ? "Free"
-                            : formatUsd(FLAT_SHIPPING)}
+                            : formatMoney(zone.shippingFeeMinor, zone.currency)}
                         </span>
                       </span>
                       <span className="mt-0.5 block text-xs text-charcoal-muted">
@@ -744,7 +866,7 @@ export default function BagPage() {
                       <span className="flex items-center justify-between font-display text-xs font-bold uppercase text-charcoal">
                         Priority Jet
                         <span className="font-bold text-brand">
-                          {formatUsd(PRIORITY_SHIPPING)}
+                          {formatMoney(zone.priorityFeeMinor, zone.currency)}
                         </span>
                       </span>
                       <span className="mt-0.5 block text-xs text-charcoal-muted">
@@ -802,15 +924,20 @@ export default function BagPage() {
 
 function BagLine({
   item,
+  currency,
+  fx,
   onRemove,
   onQty,
 }: {
   item: CartItem;
+  /** Destination currency + FX so the line shows what the buyer pays. */
+  currency: string;
+  fx: number;
   onRemove: () => void;
   onQty: (q: number) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
-  const lineTotal = item.priceMinor * item.quantity;
+  const lineTotalMinor = convertToZone(item.priceMinor, fx) * item.quantity;
 
   return (
     <div className="group flex items-stretch gap-4 rounded-2xl border border-neutral-200/70 bg-white p-4 shadow-card">
@@ -844,7 +971,7 @@ function BagLine({
             </p>
           </div>
           <span className="shrink-0 font-display text-base font-bold text-charcoal">
-            {formatUsd(lineTotal)}
+            {formatMoney(lineTotalMinor, currency)}
           </span>
         </div>
 

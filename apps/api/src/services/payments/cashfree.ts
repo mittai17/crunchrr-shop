@@ -10,6 +10,7 @@ import {
   CFEnvironment,
   type CreateOrderRequest,
 } from "cashfree-pg";
+import type { Currency } from "@crunchrr/shared";
 import { env } from "../../config/env.js";
 import { PaymentError } from "../../lib/errors.js";
 
@@ -36,7 +37,7 @@ export function isCashfreeConfigured(): boolean {
 export async function createCashfreeOrder(args: {
   orderNumber: string;
   amountMinor: number;
-  currency: "USD" | "INR";
+  currency: Currency;
   customer: { name: string; email: string; phone: string };
 }): Promise<{ order_id: string }> {
   try {

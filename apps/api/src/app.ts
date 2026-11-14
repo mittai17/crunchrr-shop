@@ -12,6 +12,8 @@ import { AppError } from "./lib/errors.js";
 import { healthRoutes } from "./routes/health.js";
 import { productRoutes } from "./routes/products.js";
 import { orderRoutes } from "./routes/orders.js";
+import { storefrontRoutes } from "./routes/storefront.js";
+import { adminRoutes } from "./routes/admin.js";
 import { razorpayWebhookRoutes } from "./routes/webhooks/razorpay.js";
 import { cashfreeWebhookRoutes } from "./routes/webhooks/cashfree.js";
 import { demoPaymentRoutes } from "./routes/demo-payment.js";
@@ -151,6 +153,8 @@ export async function buildApp(): Promise<FastifyInstance> {
     await instance.register(healthRoutes);
     await instance.register(productRoutes);
     await instance.register(orderRoutes);
+    await instance.register(storefrontRoutes);
+    await instance.register(adminRoutes);
     // Webhooks last & isolated — they must never inherit global rate limits.
     await instance.register(razorpayWebhookRoutes);
     await instance.register(cashfreeWebhookRoutes);

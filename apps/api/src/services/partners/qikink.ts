@@ -7,8 +7,8 @@
  * marked with an obviously-demo reference for later reconciliation.
  */
 import type { PartnerAdapter, PartnerDispatchInput, PartnerDispatchResult } from "./types.js";
-import { env } from "../../config/env.js";
 import { PartnerError } from "../../lib/errors.js";
+import { resolvePartnerConfig } from "./config.js";
 
 type QikinkOrderPayload = {
   store_id: string;
@@ -40,18 +40,30 @@ type QikinkOrderPayload = {
 export class QikinkAdapter implements PartnerAdapter {
   readonly id = "QIKINK" as const;
 
-  isConfigured(): boolean {
-    const e = env();
-    return Boolean(e.QIKINK_CLIENT_ID && e.QIKINK_CLIENT_SECRET);
+  async isConfigured(): Promise<boolean> {
+    return (await resolvePartnerConfig(this.id)).configured;
+  }
+
+  async ping(): Promise<{ ok: boolean; message: string }> {
+    const cfg = await resolvePartnerConfig(this.id);
+    if (!cfg.configured) {
+      return { ok: true, message: "Simulated — no credentials configured" };
+    }
+    try {
+      const res = await fetch(cfg.apiBaseUrl, { signal: AbortSignal.timeout(8000) });
+      return { ok: res.status < 500, message: `Reachable (HTTP ${res.status})` };
+    } catch (err) {
+      return { ok: false, message: `Unreachable: ${(err as Error).message.slice(0, 120)}` };
+    }
   }
 
   async dispatch(input: PartnerDispatchInput): Promise<PartnerDispatchResult> {
     const { order, lines } = input;
-    const e = env();
+    const cfg = await resolvePartnerConfig(this.id);
 
     const payload: QikinkOrderPayload = {
-      store_id: e.QIKINK_CLIENT_ID ?? "demo",
-      client_id: e.QIKINK_CLIENT_ID ?? "demo",
+      store_id: cfg.clientId ?? "demo",
+      client_id: cfg.clientId ?? "demo",
       order_id: order.orderNumber,
       order_date: order.createdAt.toISOString().slice(0, 10),
       billing_customer_name: order.customerName.split(" ")[0] ?? order.customerName,
@@ -76,18 +88,18 @@ export class QikinkAdapter implements PartnerAdapter {
       sub_total: lines.reduce((sum, l) => sum + l.priceMinor * l.quantity, 0) / 100,
     };
 
-    if (!this.isConfigured()) {
+    if (!(await this.isConfigured())) {
       return this.simulate(payload, order.orderNumber);
     }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15_000);
     try {
-      const res = await fetch(`${e.QIKINK_API_BASE}/api/v1/order`, {
+      const res = await fetch(`${cfg.apiBaseUrl}/api/v1/order`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${e.QIKINK_CLIENT_SECRET ?? ""}`,
+          Authorization: `Bearer ${cfg.clientSecret ?? ""}`,
         },
         body: JSON.stringify(payload),
         signal: controller.signal,

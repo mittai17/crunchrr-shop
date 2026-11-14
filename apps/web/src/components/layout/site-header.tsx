@@ -176,7 +176,7 @@ export function SiteHeader() {
             {/* Clerk avatar */}
             <div className="flex items-center">
               <UserButton
-                afterSignOutUrl="/"
+               
                 appearance={{
                   elements: {
                     avatarBox: "w-8 h-8 ring-2 ring-neutral-200/80 hover:ring-brand rounded-full",

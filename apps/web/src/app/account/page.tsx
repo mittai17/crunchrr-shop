@@ -6,7 +6,7 @@
  */
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { SignedIn, SignedOut, useSession, useUser } from "@clerk/nextjs";
+import { useAuth, useSession, useUser } from "@clerk/nextjs";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { cn, formatUsd } from "@/lib/utils";
@@ -71,6 +71,7 @@ function OrderRow({ order }: { order: OrderSummary }) {
 
 export default function AccountPage() {
   const { user } = useUser();
+  const { isSignedIn } = useAuth();
   const { session } = useSession();
   const [orders, setOrders] = useState<OrderSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +122,9 @@ export default function AccountPage() {
         </div>
 
         {/* Signed out */}
-        <SignedOut>
+        {/* Signed out (v7: no <SignedOut> gate — useAuth renders it) */}
+        {!isSignedIn ? (
+          <>
           <div className="flex flex-col items-center rounded-3xl border border-dashed border-neutral-300/70 bg-white/60 px-6 py-20 text-center">
             <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-surface-muted">
               <span className="material-symbols-outlined text-4xl text-charcoal-light">
@@ -144,10 +147,12 @@ export default function AccountPage() {
               </Link>
             </div>
           </div>
-        </SignedOut>
+          </>
+        ) : null}
 
         {/* Signed in */}
-        <SignedIn>
+        {isSignedIn ? (
+          <>
           <div className="mb-6 flex flex-wrap items-center gap-4 rounded-3xl border border-neutral-200/70 bg-white p-6 shadow-card">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand font-display text-xl font-bold text-white">
               {user?.firstName?.[0]?.toUpperCase() ??
@@ -227,7 +232,8 @@ export default function AccountPage() {
               ))}
             </div>
           ) : null}
-        </SignedIn>
+          </>
+        ) : null}
       </main>
       <SiteFooter />
     </div>

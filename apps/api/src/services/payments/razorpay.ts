@@ -6,6 +6,7 @@
 import Razorpay from "razorpay";
 import { env, isDemoPayments } from "../../config/env.js";
 import { PaymentError } from "../../lib/errors.js";
+import type { Currency } from "@crunchrr/shared";
 
 type RazorpayOrderShape = { id: string };
 
@@ -31,7 +32,7 @@ export function isRazorpayConfigured(): boolean {
 
 export async function createRazorpayOrder(args: {
   amountMinor: number;
-  currency: "USD" | "INR";
+  currency: Currency;
   receipt: string;
   notes?: Record<string, string>;
 }): Promise<RazorpayOrderShape> {
