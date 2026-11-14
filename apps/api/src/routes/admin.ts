@@ -45,6 +45,7 @@ import { logAdminAction, requireAdmin } from "../lib/admin-auth.js";
 import { AppError, ConflictError, NotFoundError, ValidationError } from "../lib/errors.js";
 import { dispatchSplitById, serializeOrder } from "../services/orders.js";
 import { listZones, upsertZone, setZoneActive } from "../services/zones.js";
+import { refreshFxRates } from "../services/fx.js";
 import { listPromos, upsertPromo } from "../services/promos.js";
 import { getPartnerAdapter } from "../services/partners/registry.js";
 import { maskSecret, resolvePartnerConfig } from "../services/partners/config.js";
@@ -804,6 +805,20 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     await setZoneActive(countryCode, body.active);
     await logAdminAction(admin, "ZONE_ACTIVE", countryCode, { active: body.active });
     return { ok: true };
+  });
+
+  /**
+   * FX refresh — preview (apply=false, default) or apply live market rates.
+   * Drift-guarded per currency; every applied change is audited by the
+   * fx service itself (one ZONE_FX_REFRESH row with old/new pairs).
+   */
+  app.post("/api/admin/zones/refresh-fx", async (req) => {
+    const admin = await requireAdmin(req, ["OWNER", "OPS"]);
+    const body = z.object({ apply: z.boolean().default(false) }).parse(req.body ?? {});
+    return refreshFxRates({
+      apply: body.apply,
+      actor: { clerkUserId: admin.userId, actorName: admin.name },
+    });
   });
 
   /* ---------------------------------------------------------------- */

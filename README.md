@@ -100,13 +100,19 @@ development only, `ADMIN_DEV_BYPASS=true` skips the check).
 
 | Page | What it does |
 | --- | --- |
-| Overview | KPIs (multi-currency revenue), 7-day USD-equivalent bars, low-stock watchlist |
-| Orders | Search/status tabs, multi-currency totals; detail view with pieces, vendor routing, audit trail |
-| Fulfillment | Per-split dispatch / re-dispatch / mark shipped (optional tracking #) / delivered |
-| Products | Catalog list + editor: copy, variant matrix, per-variant vendor routing |
-| Partners | 11 POD vendors: credential editing (masked), live TEST ping, per-vendor split stats |
-| Countries | 19 shipping zones — currency, FX from USD, fees, free-ship threshold, tax, on/off |
+| Overview | KPIs (multi-currency revenue), 7-day USD-equivalent bars, low-stock watchlist, **live system-health strip (20s poll)** |
+| Live Ops | Unified event feed — orders, webhooks, admin actions; 15s refresh |
+| Analytics | FX-normalized margins, vendor scorecards, bestsellers, revenue by country, 30-day 3D revenue chart |
+| Orders | Search/status tabs, multi-currency totals; detail view with pieces, vendor routing, audit trail, restocking refunds |
+| Fulfillment | Per-split dispatch / re-dispatch / retry-all-failed / mark shipped (optional tracking #) / delivered |
+| Inventory | Every SKU: stock, vendor reassignment, inline restock, low-stock filter (≤5) |
+| Products | Catalog list + editor: copy, variant matrix, per-variant vendor routing, create product, bulk discount/variants |
+| Customers | Everyone who ordered, grouped by email, fx-normalized lifetime value |
+| Partners | 11 POD vendors: credential editing (masked), live TEST ping, per-vendor split stats, region routing |
+| Countries | 19 shipping zones — currency, FX from USD, fees, free-ship threshold, tax, on/off, **market FX sync (drift-guarded)** |
 | Promos | DB-driven percent-off codes with usage counts |
+| Studio | Social composer for 6 platforms (posts + scheduled publishing) **and paid-campaign manager** |
+| Team | Roles (OWNER/OPS/SUPPORT/PARTNER), vendor-login onboarding, append-only audit trail |
 | Webhooks | Persist-first webhook audit with payload inspection |
 
 ### Multi-vendor partners
@@ -136,7 +142,12 @@ registry row (`apps/api/src/services/partners/`).
 
 Catalog prices live in **base USD minor units**. At checkout the zone row
 converts every line (`fxFromUsd`), and fees, free-shipping thresholds and tax
-are all in the **zone's own currency minor units**. Zones shipped:
+are all in the **zone's own currency minor units**. Zone FX rates can be refreshed from the market: **Countries → Check market FX**
+(preview) → **Apply live rates**. The API also refreshes them automatically
+every `FX_REFRESH_HOURS` (default 12, `0` disables); per-currency drift over
+±25% is refused and every applied change lands in the admin audit trail.
+
+Zones shipped:
 US · India · UK · Germany · France · Netherlands · Italy · Spain · Ireland ·
 UAE · Saudi Arabia · Australia · Canada · Singapore · Malaysia · Hong Kong ·
 Mexico · Brazil · South Africa. Add more from the Countries page (JPY/KRW-style

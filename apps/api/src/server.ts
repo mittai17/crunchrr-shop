@@ -7,6 +7,7 @@ import "dotenv/config";
 import { loadServerEnv } from "@crunchrr/shared";
 import { buildApp } from "./app.js";
 import { startDispatchRetryWorker } from "./services/orders.js";
+import { startFxRefreshWorker } from "./services/fx.js";
 
 async function main(): Promise<void> {
   const env = loadServerEnv();
@@ -32,6 +33,8 @@ async function main(): Promise<void> {
 
   // Smart Ops — sweep REJECTED splits and re-dispatch (capped attempts).
   startDispatchRetryWorker();
+  // FX hygiene — refresh zone rates from the market (drift-guarded, audited).
+  startFxRefreshWorker();
 
   try {
     await app.listen({ port: env.API_PORT, host: env.API_HOST });

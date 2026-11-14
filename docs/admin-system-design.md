@@ -161,7 +161,7 @@ order row at purchase).
 | G6 | ~~No metrics/observability~~ | ✅ **closed** | `GET /api/admin/metrics` (admin-gated): order/webhook/split status, stale+exhausted splits, inventory, worker counters, uptime, DB ping; Overview health strip |
 | G7 | ~~No backup/DR runbook~~ | ✅ **closed** | `docs/runbook.md`: go-live checklist, timed restore drill, incident playbooks |
 | G8 | **No partner portal** — vendors can't see their splits | none (internal ops) | scoped `/partner` role + split-filtered API (G1 prerequisite) — P3 |
-| G9 | **FX/fee data is hand-set** — no refresh job | low | nightly FX pull + admin override flag — P3 |
+| G9 | ~~FX/fee data is hand-set~~ | ✅ **closed** | `services/fx.ts`: market pull (open.er-api.com) every `FX_REFRESH_HOURS` (default 12), manual preview/apply on Countries, ±25% per-currency drift guard, audited |
 | G10 | Seed truncates order-linked tables if run on live DB | one bad command from data loss | split `seed:catalog` vs `seed:fresh` scripts — **P1** (cheapest fix, highest footgun) |
 
 ## 8. Scaling path (what breaks first)

@@ -30,6 +30,8 @@ export default function AdminZonesPage() {
     active: true,
   });
   const [saving, setSaving] = useState(false);
+  const [fxBusy, setFxBusy] = useState(false);
+  const [fxResult, setFxResult] = useState<FxResult | null>(null);
 
   const load = useCallback(() => {
     void api
@@ -40,6 +42,20 @@ export default function AdminZonesPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const syncFx = async (apply: boolean) => {
+    setFxBusy(true);
+    setError(null);
+    try {
+      const r = await api.post<FxResult>("/api/admin/zones/refresh-fx", { apply });
+      setFxResult(r);
+      if (apply) load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setFxBusy(false);
+    }
+  };
 
   const startEdit = (z?: Zone) => {
     if (z) {
@@ -115,10 +131,74 @@ export default function AdminZonesPage() {
             checkout.
           </p>
         </div>
-        <AdminButton variant="coral" onClick={() => startEdit()}>
-          Add country
-        </AdminButton>
+        <div className="flex flex-wrap items-center gap-2">
+          <AdminButton disabled={fxBusy} onClick={() => void syncFx(false)}>
+            {fxBusy ? "Checking…" : "Check market FX"}
+          </AdminButton>
+          <AdminButton variant="coral" onClick={() => startEdit()}>
+            Add country
+          </AdminButton>
+        </div>
       </header>
+
+      {fxResult ? (
+        <section className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-xs font-bold uppercase tracking-wider text-charcoal-light">
+              Market FX · {fxResult.changedCount} change{fxResult.changedCount === 1 ? "" : "s"} · source{" "}
+              {fxResult.fetchedAt ?? "live"}
+            </h2>
+            <div className="flex gap-2">
+              {fxResult.changes.some((c) => !c.skippedReason) ? (
+                <AdminButton variant="coral" disabled={fxBusy} onClick={() => void syncFx(true)}>
+                  {fxBusy ? "Applying…" : "Apply live rates"}
+                </AdminButton>
+              ) : null}
+              <AdminButton onClick={() => setFxResult(null)}>Dismiss</AdminButton>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {fxResult.changes.length === 0 ? (
+              <p className="text-xs text-charcoal-muted">No non-USD zones are active — nothing to sync.</p>
+            ) : fxResult.changes.filter((c) => !c.skippedReason).length === 0 ? (
+              <p className="text-xs text-charcoal-muted">
+                Rates already match the market — nothing to apply.
+                {fxResult.changes.some((c) => c.skippedReason === "DRIFT_GUARD")
+                  ? ` ${fxResult.changes.filter((c) => c.skippedReason === "DRIFT_GUARD").length} zone(s) refused by the ±25% drift guard.`
+                  : ""}
+              </p>
+            ) : (
+              fxResult.changes
+                .filter((c) => !c.skippedReason)
+                .map((c) => (
+                  <span
+                    key={c.countryCode}
+                    className={`rounded-full px-3 py-1 font-mono text-[10px] ${
+                      c.applied ? "bg-jade/10 text-jade" : "bg-brand/10 text-brand"
+                    }`}
+                    title={`${c.previous} → ${c.next}`}
+                  >
+                    {c.countryCode} {c.currency}: {c.previous} → {c.next}
+                    {c.driftPct ? ` (${c.driftPct > 0 ? "+" : ""}${c.driftPct}%)` : ""}
+                    {c.applied ? " · applied" : ""}
+                  </span>
+                ))
+            )}
+          </div>
+          <p className="mt-2 text-[10px] text-charcoal-light">
+            {fxResult.changes.filter((c) => c.skippedReason === "UNCHANGED").length} unchanged
+            {" · "}
+            {fxResult.changes.filter((c) => c.skippedReason === "DRIFT_GUARD").length} drift-guarded
+            {" · "}
+            {fxResult.changes.filter((c) => c.skippedReason === "MISSING_RATE").length} missing rate
+          </p>
+          <p className="mt-2 text-[10px] leading-relaxed text-charcoal-light">
+            Preview is free — nothing changes until you apply. Drift over ±25% is refused per currency; every
+            applied change is written to the audit trail. The API also refreshes rates automatically every{" "}
+            12h (FX_REFRESH_HOURS).
+          </p>
+        </section>
+      ) : null}
 
       {error ? <ErrorNote message={error} /> : null}
 
@@ -237,3 +317,18 @@ export default function AdminZonesPage() {
     </div>
   );
 }
+
+type FxResult = {
+  source: string;
+  fetchedAt: string | null;
+  changes: Array<{
+    countryCode: string;
+    currency: string;
+    previous: number;
+    next: number;
+    driftPct: number;
+    applied: boolean;
+    skippedReason?: string;
+  }>;
+  changedCount: number;
+};

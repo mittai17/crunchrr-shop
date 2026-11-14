@@ -53,6 +53,9 @@ const serverEnvSchema = z.object({
   // Behaviour
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   FORCE_DEMO_PAYMENTS: boolish.default(false),
+
+  // FX auto-refresh cadence in hours (0 disables the scheduled job).
+  FX_REFRESH_HOURS: z.coerce.number().int().min(0).max(168).default(12),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
