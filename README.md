@@ -102,7 +102,7 @@ development only, `ADMIN_DEV_BYPASS=true` skips the check).
 | --- | --- |
 | Overview | KPIs (multi-currency revenue), 7-day USD-equivalent bars, low-stock watchlist, **live system-health strip (20s poll)** |
 | Live Ops | Unified event feed — orders, webhooks, admin actions; 15s refresh |
-| Analytics | FX-normalized margins, vendor scorecards, bestsellers, revenue by country, 30-day 3D revenue chart |
+| Analytics | FX-normalized margins, vendor scorecards, bestsellers, revenue by country, 7/30/90-day revenue chart |
 | Orders | Search/status tabs, multi-currency totals; detail view with pieces, vendor routing, audit trail, restocking refunds |
 | Fulfillment | Per-split dispatch / re-dispatch / retry-all-failed / mark shipped (optional tracking #) / delivered |
 | Inventory | Every SKU: stock, vendor reassignment, inline restock, low-stock filter (≤5) |

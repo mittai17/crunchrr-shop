@@ -142,7 +142,7 @@ export default function AdminZonesPage() {
       </header>
 
       {fxResult ? (
-        <section className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+        <section className="rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-display text-xs font-bold uppercase tracking-wider text-charcoal-light">
               Market FX · {fxResult.changedCount} change{fxResult.changedCount === 1 ? "" : "s"} · source{" "}

@@ -95,14 +95,14 @@ export function AdminChrome({ children }: { children: ReactNode }) {
           </kbd>
         </button>
 
-        <nav className="nav3d flex flex-1 flex-col gap-1">
+        <nav className="flex flex-1 flex-col gap-1">
           {NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 font-display text-xs font-bold uppercase tracking-wider ${
                 isActive(item.href)
-                  ? "active-3d bg-brand/15 text-brand"
+                  ? "bg-brand/15 text-brand"
                   : "text-canvas/55 hover:bg-white/5 hover:text-canvas"
               }`}
             >

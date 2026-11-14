@@ -109,83 +109,27 @@
   }
 
   /* ================================================================
-     Admin panel 3D depth pass
+     Admin flat surfaces (3D pass removed)
      ================================================================ */
 
-  /* Cards gently tilt toward the cursor — real perspective, no JS. */
-  .card3d {
-    transform-style: preserve-3d;
-    transition:
-      transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-      box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Flat revenue chart — simple columns, day spotlight on hover. */
+  .bar-stage {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
   }
-  .card3d:hover {
-    transform: perspective(900px) rotateX(2deg) rotateY(-2.5deg) translateY(-3px);
-    box-shadow:
-      8px 12px 28px -6px rgb(18 18 18 / 0.16),
-      3px 5px 12px -4px rgb(244 91 80 / 0.18);
-  }
-
-  /* Sidebar depth: layered stack, items pop forward on hover. */
-  .nav3d { perspective: 1000px; }
-  .nav3d > a {
-    transform-style: preserve-3d;
-    transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s;
-  }
-  .nav3d > a:hover { transform: translateX(3px) translateZ(10px); }
-  .nav3d > a.active-3d {
-    transform: translateX(4px) translateZ(16px);
-    box-shadow: 6px 8px 18px -6px rgb(244 91 80 / 0.45);
-  }
-
-  /* Isometric revenue chart — bars extrude in true 3D space. */
-  .iso-stage { perspective: 1400px; }
-  .iso-chart {
-    transform: rotateX(58deg) rotateZ(-42deg);
-    transform-style: preserve-3d;
+  .bar-chart {
     display: flex;
     align-items: flex-end;
     gap: 7px;
   }
-  .iso-bar {
-    position: relative;
+  .bar-col {
     flex: 1;
     height: var(--h);
     min-height: 3px;
-    border-radius: 2px;
+    border-radius: 4px 4px 0 0;
     background: linear-gradient(180deg, #f45b50 0%, #d94339 100%);
-    transform-style: preserve-3d;
-    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: background 0.2s ease;
   }
-  /* extrusion faces */
-  .iso-bar::before,
-  .iso-bar::after {
-    content: "";
-    position: absolute;
-    pointer-events: none;
-  }
-  .iso-bar::before {
-    inset: 0 auto 0 100%;
-    width: 7px;
-    background: linear-gradient(180deg, #c73c33, #a52e27);
-    transform: skewY(-38deg);
-    transform-origin: left top;
-    border-radius: 0 2px 2px 0;
-  }
-  .iso-bar::after {
-    top: -8px;
-    left: -5px;
-    width: calc(100% + 7px);
-    height: 8px;
-    background: #ff8177;
-    transform: skewX(-42deg);
-    transform-origin: right bottom;
-    border-radius: 2px 2px 0 0;
-  }
-  .iso-bar:hover {
-    transform: translateZ(14px);
-    background: linear-gradient(180deg, #121212 0%, #2c2c2c 100%);
-  }
-  .iso-bar:hover::before { background: linear-gradient(180deg, #1a1a1a, #101010); }
-  .iso-bar:hover::after { background: #3a3a3a; }
+  .bar-col:hover { background: #121212; }
 }

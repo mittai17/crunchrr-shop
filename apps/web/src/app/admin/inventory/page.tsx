@@ -105,21 +105,21 @@ export default function AdminInventoryPage() {
       {data ? (
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <div className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+            <div className="rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
               <p className="font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">SKUs tracked</p>
               <p className="mt-1 font-display text-2xl font-bold text-charcoal">{data.stats.skus}</p>
             </div>
-            <div className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+            <div className="rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
               <p className="font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">Units on hand</p>
               <p className="mt-1 font-display text-2xl font-bold text-charcoal">{data.stats.totalStock}</p>
             </div>
-            <div className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+            <div className="rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
               <p className="font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">Low stock</p>
               <p className={`mt-1 font-display text-2xl font-bold ${data.stats.lowCount > 0 ? "text-coral" : "text-charcoal"}`}>
                 {data.stats.lowCount}
               </p>
             </div>
-            <div className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+            <div className="rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
               <p className="font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">Out of stock</p>
               <p className={`mt-1 font-display text-2xl font-bold ${data.stats.outOfStock > 0 ? "text-coral" : "text-charcoal"}`}>
                 {data.stats.outOfStock}

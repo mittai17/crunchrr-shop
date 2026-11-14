@@ -115,7 +115,7 @@ export default function AdminOverviewPage() {
 
       {/* System health — live, polled every 20s */}
       {health ? (
-        <section className="card3d rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+        <section className="rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-display text-xs font-bold uppercase tracking-[0.16em] text-charcoal">
               System health
@@ -232,7 +232,7 @@ export default function AdminOverviewPage() {
       <section className="grid gap-3 sm:grid-cols-3">
         <Link
           href="/admin/fulfillment"
-          className="card3d flex items-center gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card"
+          className="flex items-center gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card"
         >
           <span className="material-symbols-outlined text-xl text-brand">local_shipping</span>
           <div>
@@ -244,7 +244,7 @@ export default function AdminOverviewPage() {
         </Link>
         <Link
           href="/admin/zones"
-          className="card3d flex items-center gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card"
+          className="flex items-center gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card"
         >
           <span className="material-symbols-outlined text-xl text-brand">public</span>
           <div>
@@ -256,7 +256,7 @@ export default function AdminOverviewPage() {
         </Link>
         <Link
           href="/admin/webhooks"
-          className="card3d flex items-center gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card"
+          className="flex items-center gap-3 rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card"
         >
           <span className="material-symbols-outlined text-xl text-brand">webhook</span>
           <div>

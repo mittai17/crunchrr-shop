@@ -76,7 +76,7 @@ export default function AdminLivePage() {
       {!data && !error ? <Spinner label="Tapping the feed" /> : null}
 
       {data ? (
-        <div className="card3d overflow-hidden rounded-2xl border border-neutral-200/60 bg-white shadow-card">
+        <div className="overflow-hidden rounded-2xl border border-neutral-200/60 bg-white shadow-card">
           {data.feed.length === 0 ? (
             <p className="px-4 py-10 text-center text-xs text-charcoal-muted">
               Quiet. Place a test order to see the feed move.

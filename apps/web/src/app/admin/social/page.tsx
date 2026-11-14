@@ -179,7 +179,7 @@ export default function AdminStudioPage() {
       {tab === "ADS" ? (
         ads ? (
           <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
-            <section className="card3d space-y-3 rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
+            <section className="space-y-3 rounded-2xl border border-neutral-200/60 bg-white p-4 shadow-card">
               <h2 className="font-display text-xs font-bold uppercase tracking-wider text-charcoal-light">Campaign brief</h2>
               <Field label="Campaign name">
                 <input
@@ -244,7 +244,7 @@ export default function AdminStudioPage() {
               </p>
             </section>
 
-            <section className="card3d overflow-x-auto rounded-2xl border border-neutral-200/60 bg-white shadow-card">
+            <section className="overflow-x-auto rounded-2xl border border-neutral-200/60 bg-white shadow-card">
               <h2 className="border-b border-neutral-100 bg-surface-muted/60 px-3 py-2 font-display text-xs font-bold uppercase tracking-wider text-charcoal-light">
                 Campaigns ({ads.campaigns.length})
               </h2>
