@@ -1,0 +1,52 @@
+{
+  "brand": "crunchrr.",
+  "tagline": "Streetwear engineered for kinetic lifestyles",
+  "brief": "Print-on-demand streetwear label. The wordmark is the identity: a lowercase engineered skeleton where the u and n share one spine, ending in a coral full stop that lands like a punch. Must survive garment tags, social avatars and a 16px favicon.",
+  "adjectives": ["kinetic", "engineered", "minimal", "bold"],
+  "criteria": "Success: reads as crunchrr at a glance, distinct from streetwear clichés (bolts, flames, gothic), works one-colour and at 16px, seeds the storefront's design system.",
+  "industry": "fashion",
+  "nav": ["Shop", "Drops", "Lookbook"],
+  "brand_color": "#F45B50",
+  "greyscale": false,
+  "designer": "crunchrr ops",
+  "round": 1,
+  "concepts": [
+    {
+      "name": "Kinetic Wordmark",
+      "symbol": "final/crunchrr-symbol-color.svg",
+      "lockup": "concept-a-wordmark-v3.svg",
+      "idea": "Lowercase engineered skeleton; u and n share one spine; the coral full stop lands like a punch.",
+      "rationale": [
+        "The name is the mark — identifier first, no bolt/flame clichés",
+        "Shared u/n spine is ownable; one stroke grid, one counter width",
+        "Coral period is the only colour moment — the punchline"
+      ]
+    },
+    {
+      "name": "c. Monogram (companion cut)",
+      "symbol": "final/crunchrr-symbol-color.svg",
+      "idea": "The wordmark's own c, enlarged, with a squared coral dot in the mouth — reads 'c.' at any size.",
+      "rationale": [
+        "Compact carrier for avatars, tags and embroidery",
+        "Round c vs squared dot is the memory hook",
+        "Cut from the same skeleton — one voice, two scales"
+      ]
+    },
+    {
+      "name": "The Squeeze (alternate)",
+      "symbol": "concept-c-squeeze-v3.svg",
+      "idea": "Two offset plates compress a coral core — crunch frozen at maximum squeeze.",
+      "rationale": [
+        "Purest abstraction; strongest 16px survival",
+        "No streetwear cliché forms",
+        "Least 'named' — kept as an alternate, not the lead"
+      ]
+    }
+  ],
+  "recommendation": "Kinetic Wordmark as the primary identity, with the c. cut as its compact symbol — one skeleton at two scales.",
+  "next_steps": [
+    "Confirm the direction (or ask for tweaks)",
+    "Trademark search before launch (professional check recommended)",
+    "Roll out to storefront header, favicon set and garment tags"
+  ]
+}
