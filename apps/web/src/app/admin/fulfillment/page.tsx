@@ -25,6 +25,8 @@ export default function AdminFulfillmentPage() {
   const [data, setData] = useState<SplitList | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("ALL");
+  /** Optional vendor focus — deep-linked from the partners page. */
+  const [partner, setPartner] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   /** Optional tracking code captured per split before "mark shipped". */
   const [trackDraft, setTrackDraft] = useState<Record<string, string>>({});
@@ -33,11 +35,17 @@ export default function AdminFulfillmentPage() {
   const load = useCallback(() => {
     const params = new URLSearchParams();
     if (status !== "ALL") params.set("status", status);
+    if (partner) params.set("partner", partner);
     void api
       .get<SplitList>(`/api/admin/splits?${params}`)
       .then(setData)
       .catch((e: Error) => setError(e.message));
-  }, [api, status]);
+  }, [api, status, partner]);
+
+  useEffect(() => {
+    const initial = new URLSearchParams(window.location.search).get("partner");
+    if (initial) setPartner(initial);
+  }, []);
 
   useEffect(() => {
     load();
@@ -103,6 +111,18 @@ export default function AdminFulfillmentPage() {
 
       {retryNote ? (
         <p className="rounded-xl border border-jade/30 bg-jade/10 px-3 py-2 text-xs font-bold text-jade">{retryNote}</p>
+      ) : null}
+
+      {partner ? (
+        <button
+          type="button"
+          onClick={() => setPartner(null)}
+          title="Clear vendor filter"
+          className="flex w-fit items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 font-display text-[10px] font-bold uppercase tracking-wider text-brand transition-colors hover:bg-brand/20"
+        >
+          Vendor: {partner.toLowerCase()}
+          <span className="material-symbols-outlined text-xs">close</span>
+        </button>
       ) : null}
 
       <div className="flex flex-wrap gap-1.5">

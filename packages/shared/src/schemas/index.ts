@@ -605,6 +605,13 @@ export const adminPartnerSchema = z.object({
     open: z.number().int().nonnegative(),
     rejected: z.number().int().nonnegative(),
     shipped: z.number().int().nonnegative(),
+    delivered: z.number().int().nonnegative(),
   }),
+  /** Newest order (any status) routed to this partner. */
+  lastActivityAt: z.string().nullable(),
+  /** Average accept latency in minutes, all-time. */
+  avgAcceptMins: z.number().int().nullable(),
+  /** Last connectivity ping from this admin panel. */
+  lastTestAt: z.string().nullable(),
 });
 export type AdminPartner = z.infer<typeof adminPartnerSchema>;

@@ -108,7 +108,7 @@ development only, `ADMIN_DEV_BYPASS=true` skips the check).
 | Inventory | Every SKU: stock, vendor reassignment, inline restock, low-stock filter (≤5) |
 | Products | Catalog list + editor: copy, variant matrix, per-variant vendor routing, create product, bulk discount/variants |
 | Customers | Everyone who ordered, grouped by email, fx-normalized lifetime value |
-| Partners | 11 POD vendors: credential editing (masked), live TEST ping, per-vendor split stats, region routing |
+| Partners | 11 POD vendors: credential editing (masked), live TEST ping (audited), per-vendor split stats + last activity/accept latency/last ping, network KPIs, live/simulated/paused filters, deep links into a vendor-filtered fulfillment queue |
 | Countries | 19 shipping zones — currency, FX from USD, fees, free-ship threshold, tax, on/off, **market FX sync (drift-guarded)** |
 | Promos | DB-driven percent-off codes with usage counts |
 | Studio | Social composer for 6 platforms (posts + scheduled publishing) **and paid-campaign manager** |

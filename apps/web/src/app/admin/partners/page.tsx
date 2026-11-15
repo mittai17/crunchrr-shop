@@ -4,6 +4,7 @@
  * Partners (multi-vendor) — credentials, reachability tests, per-vendor
  * split stats. Secrets are masked; the API never echoes them back.
  */
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAdminApi } from "@/components/admin/chrome";
 import { AdminButton, ErrorNote, Field, inputCls, Spinner, StatusChip } from "@/components/admin/ui";
@@ -71,6 +72,7 @@ export default function AdminPartnersPage() {
     active: true,
     region: "GLOBAL",
   });
+  const [filter, setFilter] = useState<"ALL" | "LIVE" | "SIMULATED" | "PAUSED">("ALL");
   const [testing, setTesting] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<Record<string, { ok: boolean; message: string }>>({});
   const [saving, setSaving] = useState(false);
@@ -122,6 +124,26 @@ export default function AdminPartnersPage() {
     }
   };
 
+  const partners = data?.partners ?? [];
+  const kpis = {
+    total: partners.length,
+    live: partners.filter((p) => p.configured && p.active).length,
+    simulated: partners.filter((p) => !p.configured && p.active).length,
+    paused: partners.filter((p) => !p.active).length,
+    open: partners.reduce((n, p) => n + p.stats.open, 0),
+  };
+  const visible = partners
+    .filter((p) =>
+      filter === "ALL"
+        ? true
+        : filter === "LIVE"
+          ? p.configured && p.active
+          : filter === "SIMULATED"
+            ? !p.configured && p.active
+            : !p.active,
+    )
+    .sort((a, b) => b.stats.open - a.stats.open || b.stats.total - a.stats.total);
+
   if (error && !data) return <ErrorNote message={error} />;
   if (!data) return <Spinner label="Loading partners" />;
 
@@ -145,6 +167,45 @@ export default function AdminPartnersPage() {
       </header>
 
       {error ? <ErrorNote message={error} /> : null}
+
+      {/* Network KPIs */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        {(
+          [
+            ["Partners", kpis.total, "text-charcoal"],
+            ["Live", kpis.live, "text-jade-deep"],
+            ["Simulated", kpis.simulated, "text-charcoal-muted"],
+            ["Paused", kpis.paused, "text-error"],
+            ["Open splits", kpis.open, kpis.open > 0 ? "text-brand" : "text-charcoal"],
+          ] as const
+        ).map(([label, n, tone]) => (
+          <div key={label} className="rounded-2xl border border-neutral-200/60 bg-white px-4 py-3">
+            <span className={`block font-display text-2xl font-bold ${tone}`}>{n}</span>
+            <span className="block text-[9px] uppercase tracking-wider text-charcoal-light">{label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        {(["ALL", "LIVE", "SIMULATED", "PAUSED"] as const).map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setFilter(f)}
+            className={`rounded-full border px-3 py-1 font-display text-[10px] font-bold uppercase tracking-wider transition-colors ${
+              filter === f
+                ? "border-charcoal bg-charcoal text-canvas"
+                : "border-neutral-200 bg-white text-charcoal-light hover:border-charcoal/30"
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+        <span className="ml-auto text-[10px] uppercase tracking-wider text-charcoal-light">
+          {visible.length} of {partners.length} · sorted by open splits
+        </span>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         {data.partners.map((p) => {
@@ -174,18 +235,40 @@ export default function AdminPartnersPage() {
               <p className="mb-3 text-[11px] leading-relaxed text-charcoal-muted">{meta?.desc}</p>
 
               {/* Stats */}
-              <div className="mb-4 grid grid-cols-4 gap-2 text-center">
-                {[
-                  ["Total", p.stats.total],
-                  ["Open", p.stats.open],
-                  ["Rejected", p.stats.rejected],
-                  ["Shipped", p.stats.shipped],
-                ].map(([label, n]) => (
-                  <div key={label as string} className="rounded-xl bg-surface-muted py-2">
-                    <span className="block font-display text-base font-bold text-charcoal">{n}</span>
-                    <span className="block text-[9px] uppercase tracking-wider text-charcoal-light">{label}</span>
+              <div className="mb-3 grid grid-cols-5 gap-1.5 text-center">
+                {(
+                  [
+                    ["Total", p.stats.total, "text-charcoal"],
+                    ["Open", p.stats.open, p.stats.open > 0 ? "text-brand" : "text-charcoal"],
+                    ["Rej.", p.stats.rejected, p.stats.rejected > 0 ? "text-error" : "text-charcoal"],
+                    ["Ship.", p.stats.shipped, "text-charcoal"],
+                    ["Delv.", p.stats.delivered, "text-jade-deep"],
+                  ] as const
+                ).map(([label, n, tone]) => (
+                  <div key={label} className="rounded-xl bg-surface-muted py-2">
+                    <span className={`block font-display text-sm font-bold ${tone}`}>{n}</span>
+                    <span className="block text-[8px] uppercase tracking-wider text-charcoal-light">{label}</span>
                   </div>
                 ))}
+              </div>
+
+              {/* Health line */}
+              <div className="mb-3 space-y-0.5 text-[10px] text-charcoal-muted">
+                <p>
+                  Last activity:{" "}
+                  <span className="font-medium text-charcoal">
+                    {p.lastActivityAt ? new Date(p.lastActivityAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
+                  </span>
+                  <span className="mx-1.5">·</span>
+                  Avg accept:{" "}
+                  <span className="font-medium text-charcoal">{p.avgAcceptMins != null ? `${p.avgAcceptMins}m` : "—"}</span>
+                </p>
+                <p>
+                  Last ping:{" "}
+                  <span className="font-medium text-charcoal">
+                    {p.lastTestAt ? new Date(p.lastTestAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "never"}
+                  </span>
+                </p>
               </div>
 
               {isEditing ? (
@@ -271,6 +354,14 @@ export default function AdminPartnersPage() {
                     >
                       {testing === p.partnerId ? "Testing…" : "Test"}
                     </AdminButton>
+                    {p.stats.total > 0 ? (
+                      <Link
+                        href={`/admin/fulfillment?partner=${p.partnerId}`}
+                        className="flex items-center rounded-xl border border-neutral-200 px-3.5 py-2 font-display text-xs font-bold text-charcoal transition-colors hover:border-brand/40 hover:text-brand"
+                      >
+                        View splits
+                      </Link>
+                    ) : null}
                   </div>
                   {result ? (
                     <p

@@ -517,19 +517,48 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const rows = await db.select().from(partnerCredentials);
     const partnerIds = PARTNER_IDS;
 
+    /* Bulk aggregates (one query each — no N+1 across 11 partners). */
+    const statRows = await db
+      .select({
+        partnerId: orderSplits.partnerId,
+        total: sql<number>`count(*)::int`,
+        open: sql<number>`(count(*) filter (where ${orderSplits.status} in ('PENDING','SENT_TO_PARTNER','ACCEPTED_BY_PARTNER')))::int`,
+        rejected: sql<number>`(count(*) filter (where ${orderSplits.status} = 'REJECTED_BY_PARTNER'))::int`,
+        shipped: sql<number>`(count(*) filter (where ${orderSplits.status} = 'SHIPPED'))::int`,
+        delivered: sql<number>`(count(*) filter (where ${orderSplits.status} = 'DELIVERED'))::int`,
+        lastActivityAt: sql<string | null>`max(${orders.createdAt})`,
+      })
+      .from(orderSplits)
+      .innerJoin(orders, eq(orderSplits.orderId, orders.id))
+      .groupBy(orderSplits.partnerId);
+    const statsByPartner = new Map(statRows.map((r) => [r.partnerId, r]));
+
+    const acceptRows = await db
+      .select({
+        partnerId: sql<string>`${orderEvents.detail} ->> 'partnerId'`,
+        avgMins: sql<number>`coalesce(avg(extract(epoch from (${orderEvents.createdAt} - ${orders.createdAt})) / 60), 0)::int`,
+      })
+      .from(orderEvents)
+      .innerJoin(orders, eq(orderEvents.orderId, orders.id))
+      .where(eq(orderEvents.kind, "PARTNER_ACCEPTED"))
+      .groupBy(sql`${orderEvents.detail} ->> 'partnerId'`);
+    const acceptByPartner = new Map(acceptRows.map((r) => [r.partnerId, r.avgMins]));
+
+    const testRows = await db
+      .select({
+        target: adminActions.target,
+        lastTestAt: sql<string>`max(${adminActions.createdAt})`,
+      })
+      .from(adminActions)
+      .where(eq(adminActions.action, "PARTNER_TEST"))
+      .groupBy(adminActions.target);
+    const testByPartner = new Map(testRows.map((r) => [r.target, r.lastTestAt]));
+
     const out = [];
     for (const pid of partnerIds) {
       const cfg = await resolvePartnerConfig(pid);
       const row = rows.find((r) => r.partnerId === pid);
-      const [splitStats] = await db
-        .select({
-          total: sql<number>`count(*)::int`,
-          open: sql<number>`count(*) filter (where ${orderSplits.status} in ('PENDING','SENT_TO_PARTNER','ACCEPTED_BY_PARTNER'))::int`,
-          rejected: sql<number>`count(*) filter (where ${orderSplits.status} = 'REJECTED_BY_PARTNER')::int`,
-          shipped: sql<number>`count(*) filter (where ${orderSplits.status} in ('SHIPPED','DELIVERED'))::int`,
-        })
-        .from(orderSplits)
-        .where(eq(orderSplits.partnerId, pid));
+      const stat = statsByPartner.get(pid);
 
       out.push(
         adminPartnerSchema.parse({
@@ -542,11 +571,15 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
           clientId: cfg.clientId ? maskSecret(cfg.clientId) : null,
           hasSecret: Boolean(cfg.clientSecret),
           stats: {
-            total: splitStats?.total ?? 0,
-            open: splitStats?.open ?? 0,
-            rejected: splitStats?.rejected ?? 0,
-            shipped: splitStats?.shipped ?? 0,
+            total: stat?.total ?? 0,
+            open: stat?.open ?? 0,
+            rejected: stat?.rejected ?? 0,
+            shipped: stat?.shipped ?? 0,
+            delivered: stat?.delivered ?? 0,
           },
+          lastActivityAt: stat?.lastActivityAt ?? null,
+          avgAcceptMins: acceptByPartner.get(pid) ?? null,
+          lastTestAt: testByPartner.get(pid) ?? null,
         }),
       );
     }
@@ -605,13 +638,15 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post("/api/admin/partners/:id/test", async (req) => {
-    await requireAdmin(req);
+    const admin = await requireAdmin(req);
     const { id } = req.params as { id: string };
     const adapter = getPartnerAdapter(id);
     if (!adapter) {
       return { ok: true, message: "IN_HOUSE is manual fulfillment — nothing to test." };
     }
-    return adapter.ping();
+    const result = await adapter.ping();
+    await logAdminAction(admin, "PARTNER_TEST", id, { ok: result.ok, message: result.message });
+    return result;
   });
 
   /* ---------------------------------------------------------------- */
@@ -623,6 +658,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const q = z
       .object({
         status: z.string().optional(),
+        partner: z.string().optional(),
         limit: z.coerce.number().int().min(1).max(50).default(25),
       })
       .parse(req.query ?? {});
@@ -631,6 +667,9 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const filters = [];
     if (q.status && q.status !== "ALL") {
       filters.push(eq(orderSplits.status, q.status as (typeof orderSplits.$inferSelect)["status"]));
+    }
+    if (q.partner && (PARTNER_IDS as readonly string[]).includes(q.partner)) {
+      filters.push(eq(orderSplits.partnerId, q.partner as PartnerId));
     }
 
     const rows = await db
