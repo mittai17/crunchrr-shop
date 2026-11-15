@@ -1,8 +1,8 @@
 # crunchrr. — Logo Guidelines (compact)
 
 ## 1. The logo
-- **Idea**: A lowercase engineered skeleton for `crunchrr.` where the **u and n share one spine** — kinetic economy — and a **coral full stop lands like a punch**. Identifier first: no bolts, flames or gothic.
-- **Versions**: wordmark (primary) · symbol-only `c.` (compact cut from the same skeleton) · one-colour black / white / coral · reversed (thinned) for dark grounds.
+- **Idea**: A lowercase engineered skeleton for `crunchrr.` set at an **8° kinetic lean** (baked into the masters) where the **u and n share one spine** — kinetic economy — and a **coral full stop lands like a punch**. Identifier first: no bolts, flames or gothic.
+- **Versions**: wordmark (primary, leaned) · symbol-only `c.` (compact cut from the same skeleton, **kept upright** so avatars/favicon stay stable at 16px) · one-colour black / white / coral · reversed (thinned) for dark grounds.
 - **Files**: `brand/logo/final/*.svg` masters (filled outlines, no strokes) · `final/png/` renders · `final/web/` full favicon + PWA icon set.
 
 ## 2. Clear space
@@ -31,10 +31,11 @@ One-colour rule: the mark must work with the dot in the same colour as the lette
 - Brand pair: **Space Grotesk** (display/headlines) + **Plus Jakarta Sans** (body) — both SIL Open Font License, safe for logo-adjacent use.
 
 ## 6. Don'ts
-Don't stretch, squash or rotate · don't recolour outside the palette · don't add shadows, outlines, gradients or effects · don't rearrange or respace the letters (the u/n shared spine is the ownable detail — it must stay connected) · don't set the wordmark in a font · don't place on busy imagery without a charcoal or canvas container.
+Don't stretch, squash or rotate · don't straighten the 8° lean or add more lean (it is baked at exactly 8°) · don't recolour outside the palette · don't add shadows, outlines, gradients or effects · don't rearrange or respace the letters (the u/n shared spine is the ownable detail — it must stay connected) · don't set the wordmark in a font · don't lean the symbol `c.` (it stays upright by design) · don't place on busy imagery without a charcoal or canvas container.
 
 ## 7. Notes & handover
 - Masters are filled outlines (printer/cutter-safe). `crunchrr-wordmark-white.svg` is thinned ~4% so knockouts on dark don't gain weight.
+- **Geometry reference** (for future edits): baseline 208, x-height 80, stroke 28, arch radius 38, c radius 40, gaps 14 (straight) / 10 (next to round c), lean `skewX(-8)` with baseline pinned. The lean is a group transform applied to the approved upright skeleton — construction verified pixel-identical (IoU 1.000 vs upright + same skew).
 - 16px survival: `crunchrr-symbol-small.svg` uses a wider arc and tighter mouth than the display symbol — use it (via `web/favicon.svg`) below 32 px.
 - **Trademark**: no clearance search has been run. Before launch on garments, do a professional search (word + figurative, classes 25/35).
 - Questions: crunchrr ops · masters live in `brand/logo/final/`.
