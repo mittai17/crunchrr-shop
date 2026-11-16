@@ -95,7 +95,7 @@ export function ProductCard({ product, variant, className }: Props) {
         </div>
 
         <div className="mb-1 flex items-center justify-between text-[11px]">
-          <span className="font-display font-medium uppercase tracking-[0.16em] text-charcoal-light">
+          <span className="font-display font-medium uppercase tracking-[0.16em] text-charcoal-muted">
             {metaLabel}
           </span>
           {product.unitsLeftLabel ? (
@@ -111,7 +111,9 @@ export function ProductCard({ product, variant, className }: Props) {
         </div>
 
         <h4 className="mb-1 line-clamp-1 font-display text-sm font-bold text-charcoal transition-colors group-hover:text-brand">
-          <Link href={`/product/${product.slug}`}>{product.name}</Link>
+          <Link href={`/product/${product.slug}`} className="transition-colors">
+            {product.name}
+          </Link>
         </h4>
         <p className="mb-4 line-clamp-1 text-xs font-light text-charcoal-muted">
           {product.tagline}

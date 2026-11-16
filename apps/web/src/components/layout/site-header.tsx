@@ -5,16 +5,17 @@
  * Cart count reacts live to the zustand bag store.
  */
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
+import { DROP } from "@/lib/drop";
 import { CrunchrrLogo } from "@/components/brand/logo";
 import { SearchOverlay } from "@/components/layout/search-overlay";
 
 const NAV: Array<{ href: string; label: string; pulse?: boolean }> = [
   { href: "/shop", label: "Shop" },
-  { href: "/shop?category=HOODIES", label: "Collections" },
   { href: "/drops", label: "Drops", pulse: true },
   { href: "/lookbook", label: "Lookbook" },
   { href: "/manifesto", label: "Manifesto" },
@@ -23,9 +24,10 @@ const NAV: Array<{ href: string; label: string; pulse?: boolean }> = [
 export function SiteHeader() {
   const items = useCart((s) => s.items);
   const wishItems = useWishlist((s) => s.items);
+  const { isSignedIn } = useUser();
+  const pathname = usePathname();
   const [count, setCount] = useState<number | null>(null);
   const [wishCount, setWishCount] = useState<number | null>(null);
-  const [active, setActive] = useState<string>("");
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Hydration-safe badges: render empty server-side, then live values.
@@ -36,10 +38,6 @@ export function SiteHeader() {
   useEffect(() => {
     setWishCount(wishItems.length);
   }, [wishItems]);
-
-  useEffect(() => {
-    setActive(window.location.pathname);
-  }, []);
 
   // ⌘K / Ctrl+K opens catalog search.
   useEffect(() => {
@@ -57,16 +55,14 @@ export function SiteHeader() {
     <>
       {/* Announcement rail */}
       <div className="flex items-center justify-between gap-4 border-b border-white/10 bg-charcoal px-6 py-2 text-center font-display text-[11px] uppercase tracking-overline text-white">
-        <div className="hidden items-center gap-4 text-[10px] text-charcoal-light md:flex">
+        <div className="hidden items-center gap-4 text-[10px] text-white/70 md:flex">
           <span>Paris / Tokyo / New York</span>
           <span className="h-1 w-1 rounded-full bg-brand" />
           <span>Limited Archival Production</span>
         </div>
         <div className="mx-auto flex items-center gap-2 md:mx-0">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
-          <span className="font-medium tracking-[0.18em]">
-            Drop 004 : Cyber Pastel is live now
-          </span>
+          <span className="font-medium tracking-[0.18em]">{DROP.rail}</span>
           <Link
             href="/drops"
             className="ml-2 text-[10px] underline decoration-brand/60 underline-offset-4 transition-colors hover:text-brand"
@@ -75,7 +71,7 @@ export function SiteHeader() {
           </Link>
         </div>
         <div className="hidden items-center gap-4 text-[10px] text-white/70 md:flex">
-          <span>Complimentary worldwide delivery over $200</span>
+          <span>Worldwide tracked delivery · free over threshold</span>
         </div>
       </div>
 
@@ -83,13 +79,13 @@ export function SiteHeader() {
       <header className="glass-bar sticky top-0 z-50 transition-all duration-300">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-8 px-6 lg:px-12">
           <div className="flex items-center gap-10">
-            <Link href="/" aria-label="Crunchrr home">
+            <Link href="/" aria-label="Crunchrr home" className="transition-opacity hover:opacity-80">
               <CrunchrrLogo />
             </Link>
             <div className="hidden h-4 w-px bg-neutral-300/60 xl:block" />
             <nav className="hidden items-center gap-8 xl:flex" aria-label="Primary">
               {NAV.map((item) => {
-                const isActive = active === item.href.split("?")[0];
+                const isActive = pathname === item.href.split("?")[0];
                 return (
                   <Link
                     key={item.label}
@@ -173,22 +169,23 @@ export function SiteHeader() {
 
             <div className="hidden h-4 w-px bg-neutral-300/60 sm:block" />
 
-            {/* Clerk avatar */}
+            {/* Clerk avatar — "Sign in" only shows when signed out. */}
             <div className="flex items-center">
               <UserButton
-               
                 appearance={{
                   elements: {
                     avatarBox: "w-8 h-8 ring-2 ring-neutral-200/80 hover:ring-brand rounded-full",
                   },
                 }}
               />
-              <Link
-                href="/sign-in"
-                className="ml-2 hidden font-display text-xs uppercase tracking-wider text-charcoal-muted hover:text-charcoal sm:block"
-              >
-                Sign in
-              </Link>
+              {isSignedIn === false ? (
+                <Link
+                  href="/sign-in"
+                  className="ml-2 hidden font-display text-xs uppercase tracking-wider text-charcoal-muted transition-colors hover:text-charcoal sm:block"
+                >
+                  Sign in
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>

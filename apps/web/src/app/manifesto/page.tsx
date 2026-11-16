@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { DROP } from "@/lib/drop";
 
 export const metadata: Metadata = {
   title: "Manifesto — Never Mass Produced",
@@ -94,6 +95,59 @@ export default function ManifestoPage() {
           </div>
         </section>
 
+        {/* Drop protocol — anchor targets referenced from the footer */}
+        <section className="mx-auto w-full max-w-4xl px-6 pb-16 lg:px-12">
+          <h2 className="mb-6 border-b border-neutral-200/60 pb-4 font-display text-2xl font-bold uppercase tracking-tight text-charcoal">
+            The Protocol
+          </h2>
+          <div className="space-y-3">
+            {[
+              {
+                id: "shipping",
+                icon: "local_shipping",
+                title: "Global Freight",
+                body: "Tracked worldwide dispatch from our bonded depot within 24h of allocation. Multi-partner splits may arrive as separate parcels — always under one order number.",
+              },
+              {
+                id: "authenticity",
+                icon: "verified",
+                title: "Authenticity Guarantee",
+                body: "Every garment carries an NFC chip in the collar seam. Tap it with your phone to pull the batch record — run, GSM, and route.",
+              },
+              {
+                id: "returns",
+                icon: "sync",
+                title: "Returns & Exchanges",
+                body: "30-day free size swaps on unworn pieces. Allocated batches are final sale once payment confirms — we'll always list the policy before you pay.",
+              },
+              {
+                id: "concierge",
+                icon: "support_agent",
+                title: "Client Concierge",
+                body: "Questions about fit, GSM, or an in-flight order? Reach the concierge from your account page or order tracking — humans answer, not bots.",
+              },
+            ].map((p) => (
+              <div
+                key={p.id}
+                id={p.id}
+                className="flex scroll-mt-28 gap-4 rounded-2xl border border-neutral-200/70 bg-white p-5 shadow-card"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10">
+                  <span className="material-symbols-outlined text-lg text-brand">
+                    {p.icon}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-display text-sm font-bold uppercase tracking-tight text-charcoal">
+                    {p.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-charcoal-muted">{p.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="mx-auto w-full max-w-4xl px-6 pb-20 lg:px-12" id="faq">
           <h2 className="mb-6 border-b border-neutral-200/60 pb-4 font-display text-2xl font-bold uppercase tracking-tight text-charcoal">
             Drop FAQ
@@ -115,17 +169,22 @@ export default function ManifestoPage() {
             ))}
           </div>
 
-          <div className="mt-10 flex flex-col items-center gap-4 rounded-2xl bg-surface-subtle p-8 text-center sm:flex-row sm:justify-between sm:text-left">
+          <div
+            id="circle"
+            className="mt-10 flex scroll-mt-28 flex-col items-center gap-4 rounded-2xl bg-surface-subtle p-8 text-center sm:flex-row sm:justify-between sm:text-left"
+          >
             <div>
               <h3 className="font-display text-lg font-bold uppercase tracking-tight text-charcoal">
                 Ready for the next drop?
               </h3>
               <p className="text-sm text-charcoal-muted">
-                The Collector&apos;s Circle gets SMS priority 10 minutes early.
+                {DROP.batchLabel} window is live — and the Collector&apos;s
+                Circle gets priority on the next one (join from any page
+                footer).
               </p>
             </div>
             <Link href="/drops" className="btn-pill-primary shrink-0">
-              <span>Join The Circle</span>
+              <span>Get Drop Alerts</span>
               <span className="material-symbols-outlined text-base">arrow_forward</span>
             </Link>
           </div>

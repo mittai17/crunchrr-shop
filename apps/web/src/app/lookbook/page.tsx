@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { DROP } from "@/lib/drop";
 
 export const metadata: Metadata = {
   title: "Lookbook — Drop 004 Editorial",
@@ -63,12 +64,12 @@ export default function LookbookPage() {
 
         <section className="mx-auto w-full max-w-7xl px-6 pb-20 lg:px-12">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {SHOTS.map((shot, i) => (
-              <div
+            {SHOTS.map((shot) => (
+              <Link
                 key={shot.title}
-                className={`group relative overflow-hidden rounded-2xl bg-neutral-200 shadow-card ${
-                  i % 3 === 0 ? "md:aspect-[4/5]" : "md:aspect-[4/3]"
-                }`}
+                href="/shop"
+                aria-label={`Shop pieces from ${shot.title}`}
+                className="group relative block aspect-[4/5] overflow-hidden rounded-2xl bg-neutral-200 shadow-card cursor-pointer"
               >
                 <Image
                   src={shot.src}
@@ -78,6 +79,9 @@ export default function LookbookPage() {
                   className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-charcoal/80 via-transparent to-transparent" />
+                <span className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-charcoal opacity-0 shadow-md backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
+                  <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                </span>
                 <div className="absolute bottom-0 left-0 right-0 p-6">
                   <span className="mb-1 inline-block font-display text-[10px] font-bold uppercase tracking-[0.2em] text-brand">
                     {shot.note}
@@ -86,7 +90,7 @@ export default function LookbookPage() {
                     {shot.title}
                   </h2>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </section>
@@ -97,7 +101,8 @@ export default function LookbookPage() {
               Shop the editorial
             </h2>
             <p className="mx-auto mb-7 max-w-md text-sm text-white/70">
-              Every look above maps to a live SKU in the Drop 004 vault.
+              The pieces behind these looks ship from the {DROP.dropLabel} vault
+              while allocations last.
             </p>
             <Link href="/shop" className="btn-pill-coral">
               <span>Enter The Vault</span>

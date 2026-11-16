@@ -84,13 +84,13 @@ export default async function HomePage() {
                       Future Threads
                     </span>
                   </div>
-                  <span className="text-xs text-white/40">/</span>
+                  <span className="text-xs text-white/60">/</span>
                   <div className="flex items-center gap-2">
                     <span className="font-display text-[11px] font-semibold uppercase tracking-[0.18em]">
                       Unique Designs
                     </span>
                   </div>
-                  <span className="hidden text-xs text-white/40 sm:inline">/</span>
+                  <span className="hidden text-xs text-white/60 sm:inline">/</span>
                   <div className="hidden items-center gap-2 sm:flex">
                     <span className="font-display text-[11px] font-semibold uppercase tracking-[0.18em]">
                       Limited Drops

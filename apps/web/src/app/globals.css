@@ -22,6 +22,28 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* Keyboard focus — every interactive element gets a visible ring. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand));
+    outline-offset: 2px;
+    border-radius: inherit;
+  }
+
+  /* Motion safety — honour the OS reduce-motion setting. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   ::selection {
     @apply bg-brand text-white;
   }

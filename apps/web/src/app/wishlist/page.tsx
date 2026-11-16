@@ -48,7 +48,7 @@ export default function WishlistPage() {
               <span className="material-symbols-outlined filled text-xl text-brand">
                 favorite
               </span>
-              <span className="font-display text-[11px] font-bold uppercase tracking-[0.22em] text-charcoal-light">
+              <span className="font-display text-[11px] font-bold uppercase tracking-[0.22em] text-charcoal-muted">
                 Saved Archive
               </span>
             </div>
@@ -96,7 +96,7 @@ export default function WishlistPage() {
             {items.map((item) => (
               <div
                 key={item.sku}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-neutral-200/60 bg-white shadow-card transition-all hover:-translate-y-1 hover:shadow-float"
+                className="group flex flex-col overflow-hidden rounded-2xl border border-neutral-200/60 bg-white shadow-card transition-shadow hover:shadow-float"
               >
                 <Link
                   href={`/product/${item.slug}`}
@@ -122,7 +122,7 @@ export default function WishlistPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       {item.collectionLabel ? (
-                        <span className="mb-1 block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-charcoal-light">
+                        <span className="mb-1 block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-charcoal-muted">
                           {item.collectionLabel}
                         </span>
                       ) : null}
@@ -169,7 +169,7 @@ export default function WishlistPage() {
                       onClick={() => remove(item.sku)}
                       className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-muted text-charcoal-muted transition-colors hover:bg-error-container hover:text-error"
                     >
-                      <span className="material-symbols-outlined text-lg">close</span>
+                      <span className="material-symbols-outlined text-lg">heart_minus</span>
                     </button>
                   </div>
                 </div>

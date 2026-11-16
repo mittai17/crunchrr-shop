@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CrunchrrLogo } from "@/components/brand/logo";
+import { CircleForm } from "@/components/layout/circle-form";
 
 const CATALOG_LINKS = [
   { href: "/shop?category=OUTERWEAR", label: "Outerwear" },
@@ -90,33 +91,15 @@ export function SiteFooter() {
                 Receive priority allocation codes, early access lookbooks, and
                 private invites.
               </p>
-              <form
-                className="flex items-center gap-2"
-                action="/manifesto#circle"
-                method="get"
-              >
-                <input
-                  type="email"
-                  required
-                  placeholder="Enter your email..."
-                  aria-label="Email address"
-                  className="flex-1 rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-xs text-charcoal outline-none transition-colors placeholder:text-charcoal-light focus:border-brand"
-                />
-                <button
-                  type="submit"
-                  className="rounded-full bg-charcoal px-4 py-2.5 font-display text-[11px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-brand"
-                >
-                  Join
-                </button>
-              </form>
+              <CircleForm />
             </div>
           </div>
         </div>
 
         {/* Bottom bar */}
-        <div className="flex flex-col items-center justify-between gap-4 border-t border-neutral-200/60 pt-8 text-xs text-charcoal-light md:flex-row">
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-neutral-200/60 pt-8 text-xs text-charcoal-muted md:flex-row">
           <div className="flex items-center gap-3">
-            <span>© 2026 crunchrr. studio inc.</span>
+            <span>© {new Date().getFullYear()} crunchrr. studio inc.</span>
             <span>•</span>
             <span>Tokyo / NYC / London / Paris</span>
           </div>

@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CheckoutRequest } from "@crunchrr/shared";
 import { useCart, type CartItem } from "@/lib/cart";
 import { cn, formatMoney } from "@/lib/utils";
+import { DROP } from "@/lib/drop";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 
@@ -103,6 +104,20 @@ export default function BagPage() {
   const pickCountry = (code: string) => {
     setCountry(code);
     window.localStorage.setItem("crunchrr.country", code);
+  };
+
+  /* Express wallets route through the same pipeline — they never skip the
+   * form. When details are missing, point the buyer at the form instead of
+   * silently doing nothing. */
+  const expressPay = () => {
+    if (!canSubmit) {
+      document
+        .getElementById("fast-checkout")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setError("Complete the fast checkout form — demo wallets pay through the same secure pipeline.");
+      return;
+    }
+    void placeOrder();
   };
 
   // Fast-checkout form state
@@ -288,7 +303,7 @@ export default function BagPage() {
               {success.orderNumber}
             </span>{" "}
             is locked for{" "}
-            {formatMoney(success.totalMinor, success.currency)}. Batch #09
+            {formatMoney(success.totalMinor, success.currency)}. {DROP.batchLabel}{" "}
             pieces ship from the depot within 24h — tracking lands in your
             inbox.
           </p>
@@ -360,7 +375,7 @@ export default function BagPage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-sm">bolt</span>
-            <span>Batch #09 allocated on checkout — no restocks</span>
+            <span>Batch {DROP.number} allocated on checkout — no restocks</span>
           </div>
         </div>
       </div>
@@ -400,45 +415,45 @@ export default function BagPage() {
                 Express Checkout
               </span>
               <span className="text-xs text-charcoal-muted">
-                Skip the form — biometric wallet pays in seconds.
+                One-tap wallets — same secure pipeline, fewer keystrokes.
               </span>
             </div>
             <div className="grid w-full grid-cols-3 gap-2 md:w-auto md:grid-cols-4">
               <button
                 type="button"
-                onClick={placeOrder}
-                disabled={!canSubmit || submitting}
+                onClick={expressPay}
+                disabled={submitting}
                 className={cn(
                   "flex h-11 items-center justify-center rounded-full font-display text-sm font-bold lowercase italic tracking-tight text-white shadow-md transition-all",
-                  canSubmit && !submitting
-                    ? "bg-[#5a31f4] hover:bg-[#4b27d4]"
-                    : "cursor-not-allowed bg-neutral-200 text-neutral-400",
+                  submitting
+                    ? "cursor-not-allowed bg-neutral-200 text-neutral-400"
+                    : "bg-[#5a31f4] hover:bg-[#4b27d4]",
                 )}
               >
                 ShopPay
               </button>
               <button
                 type="button"
-                onClick={placeOrder}
-                disabled={!canSubmit || submitting}
+                onClick={expressPay}
+                disabled={submitting}
                 className={cn(
                   "flex h-11 items-center justify-center rounded-full font-display text-sm font-bold italic text-charcoal shadow-md transition-all",
-                  canSubmit && !submitting
-                    ? "bg-[#FFC439] hover:bg-[#f0b52f]"
-                    : "cursor-not-allowed bg-neutral-200 text-neutral-400",
+                  submitting
+                    ? "cursor-not-allowed bg-neutral-200 text-neutral-400"
+                    : "bg-[#FFC439] hover:bg-[#f0b52f]",
                 )}
               >
                 PayPal
               </button>
               <button
                 type="button"
-                onClick={placeOrder}
-                disabled={!canSubmit || submitting}
+                onClick={expressPay}
+                disabled={submitting}
                 className={cn(
                   "flex h-11 items-center justify-center gap-1 rounded-full font-display text-sm font-bold text-white shadow-md transition-all",
-                  canSubmit && !submitting
-                    ? "bg-charcoal hover:bg-charcoal-muted"
-                    : "cursor-not-allowed bg-neutral-200 text-neutral-400",
+                  submitting
+                    ? "cursor-not-allowed bg-neutral-200 text-neutral-400"
+                    : "bg-charcoal hover:bg-charcoal-muted",
                 )}
               >
                 <span className="material-symbols-outlined text-base">language</span>
@@ -446,13 +461,13 @@ export default function BagPage() {
               </button>
               <button
                 type="button"
-                onClick={placeOrder}
-                disabled={!canSubmit || submitting}
+                onClick={expressPay}
+                disabled={submitting}
                 className={cn(
                   "hidden h-11 items-center justify-center gap-1 rounded-full font-display text-sm font-bold text-white shadow-md transition-all md:flex",
-                  canSubmit && !submitting
-                    ? "bg-charcoal hover:bg-charcoal-muted"
-                    : "cursor-not-allowed bg-neutral-200 text-neutral-400",
+                  submitting
+                    ? "cursor-not-allowed bg-neutral-200 text-neutral-400"
+                    : "bg-charcoal hover:bg-charcoal-muted",
                 )}
               >
                 <span className="material-symbols-outlined text-base">apple</span>
@@ -566,7 +581,7 @@ export default function BagPage() {
                 Order Summary
               </h2>
               <p className="mb-4 text-xs text-white/60">
-                Batch #09 — allocations finalize at payment.
+                {DROP.batchLabel} — allocations finalize at payment.
               </p>
 
               {/* Destination picker */}
@@ -590,7 +605,7 @@ export default function BagPage() {
                     </option>
                   ))}
                 </select>
-                <p className="mt-1.5 text-[10px] text-white/40">
+                <p className="mt-1.5 text-[10px] text-white/60">
                   Prices convert to {zone.currency} at checkout · tax {zone.taxBps / 100}%
                 </p>
               </div>
@@ -678,7 +693,10 @@ export default function BagPage() {
             </div>
 
             {/* ================= Fast checkout form ================= */}
-            <div className="rounded-2xl border border-neutral-200/70 bg-white p-6 shadow-card lg:col-span-12">
+            <div
+              id="fast-checkout"
+              className="rounded-2xl border border-neutral-200/70 bg-white p-6 shadow-card lg:col-span-12 scroll-mt-28"
+            >
               <div className="mb-6 flex items-center justify-between border-b border-neutral-100 pb-4">
                 <div>
                   <h2 className="font-display text-xl font-bold uppercase tracking-tight text-charcoal">
@@ -823,7 +841,9 @@ export default function BagPage() {
                       )}
                     >
                       {delivery === "STANDARD" ? (
-                        <span className="text-[10px]">✓</span>
+                        <span className="material-symbols-outlined text-[12px] leading-none">
+                          check
+                        </span>
                       ) : null}
                     </span>
                     <span className="flex-1">
@@ -859,7 +879,9 @@ export default function BagPage() {
                       )}
                     >
                       {delivery === "PRIORITY" ? (
-                        <span className="text-[10px]">✓</span>
+                        <span className="material-symbols-outlined text-[12px] leading-none">
+                          check
+                        </span>
                       ) : null}
                     </span>
                     <span className="flex-1">
@@ -1007,13 +1029,6 @@ function BagLine({
           </div>
 
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              className="flex items-center gap-1 rounded-full px-3 py-1.5 font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-muted transition-colors hover:bg-surface-muted hover:text-charcoal"
-            >
-              <span className="material-symbols-outlined text-sm">bookmark_added</span>
-              Save
-            </button>
             <button
               type="button"
               onClick={() => {

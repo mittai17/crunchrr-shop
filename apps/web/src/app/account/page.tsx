@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { useAuth, useSession, useUser } from "@clerk/nextjs";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
-import { cn, formatUsd } from "@/lib/utils";
+import { cn, formatMoney } from "@/lib/utils";
 import type { OrderSummary } from "@crunchrr/shared";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
@@ -29,7 +29,7 @@ function OrderRow({ order }: { order: OrderSummary }) {
   return (
     <Link
       href={`/track?order=${encodeURIComponent(order.orderNumber)}`}
-      className="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-neutral-200/60 bg-white px-5 py-4 shadow-card transition-all hover:-translate-y-0.5 hover:border-charcoal/20"
+      className="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-neutral-200/60 bg-white px-5 py-4 shadow-card transition-colors hover:border-charcoal/20"
     >
       <div className="min-w-0">
         <div className="mb-1 flex items-center gap-2">
@@ -38,7 +38,7 @@ function OrderRow({ order }: { order: OrderSummary }) {
           </span>
           <span
             className={cn(
-              "rounded-full px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-wider",
+              "rounded-full px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wider",
               STATUS_CHIP[order.status] ?? "bg-surface-muted text-charcoal-muted",
             )}
           >
@@ -49,7 +49,7 @@ function OrderRow({ order }: { order: OrderSummary }) {
           {order.previewLine}
           {order.itemCount > 1 ? ` +${order.itemCount - 1} more` : ""}
         </span>
-        <span className="block text-[10px] text-charcoal-light">
+        <span className="block text-[10px] text-charcoal-muted">
           {new Date(order.createdAt).toLocaleDateString(undefined, {
             year: "numeric",
             month: "short",
@@ -59,9 +59,9 @@ function OrderRow({ order }: { order: OrderSummary }) {
       </div>
       <div className="flex items-center gap-3">
         <span className="font-display text-base font-bold text-charcoal">
-          {formatUsd(order.grandTotalMinor)}
+          {formatMoney(order.grandTotalMinor, order.currency)}
         </span>
-        <span className="material-symbols-outlined text-lg text-charcoal-light transition-colors group-hover:text-brand">
+        <span className="material-symbols-outlined text-lg text-charcoal-muted transition-colors group-hover:text-brand">
           arrow_forward
         </span>
       </div>
@@ -112,7 +112,7 @@ export default function AccountPage() {
         <div className="mb-8">
           <div className="mb-2 flex items-center gap-2">
             <span className="material-symbols-outlined text-xl text-brand">account_circle</span>
-            <span className="font-display text-[11px] font-bold uppercase tracking-[0.22em] text-charcoal-light">
+            <span className="font-display text-[11px] font-bold uppercase tracking-[0.22em] text-charcoal-muted">
               Collector Hub
             </span>
           </div>
@@ -122,7 +122,6 @@ export default function AccountPage() {
         </div>
 
         {/* Signed out */}
-        {/* Signed out (v7: no <SignedOut> gate — useAuth renders it) */}
         {!isSignedIn ? (
           <>
           <div className="flex flex-col items-center rounded-3xl border border-dashed border-neutral-300/70 bg-white/60 px-6 py-20 text-center">
@@ -180,14 +179,15 @@ export default function AccountPage() {
 
           {/* Order feed */}
           <div className="mb-4 flex items-center justify-between">
-            <span className="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-charcoal-light">
+            <span className="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-charcoal-muted">
               Your Orders
             </span>
             <Link
               href="/track"
-              className="font-display text-[10px] font-bold uppercase tracking-wider text-brand hover:underline"
+              className="inline-flex items-center gap-1 font-display text-[10px] font-bold uppercase tracking-wider text-brand hover:underline"
             >
-              Track by number →
+              Track by number
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </Link>
           </div>
 
@@ -199,7 +199,7 @@ export default function AccountPage() {
           ) : null}
 
           {orders === null && !error ? (
-            <div className="flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-12 text-xs font-bold uppercase tracking-wider text-charcoal-light shadow-card">
+            <div className="flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-12 text-xs font-bold uppercase tracking-wider text-charcoal-muted shadow-card">
               <span className="material-symbols-outlined animate-spin text-base">
                 progress_activity
               </span>

@@ -6,12 +6,12 @@
  * All state derived from the server-fetched Product payload.
  */
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Product } from "@crunchrr/shared";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { cn, formatUsd } from "@/lib/utils";
-import { ProductCustomizer } from "@/components/pdp/product-customizer";
+import { DROP } from "@/lib/drop";
 
 type Props = { product: Product };
 
@@ -28,6 +28,7 @@ export function PdpClient({ product }: Props) {
   const [activeImage, setActiveImage] = useState(0);
   const [openAcc, setOpenAcc] = useState<string | null>("specs");
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+  const [zoomOpen, setZoomOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
 
@@ -77,8 +78,42 @@ export function PdpClient({ product }: Props) {
     ? wishlistItems.some((i) => i.sku === selectedVariant.sku)
     : false;
 
+  /* Real stock-derived limit badge — no hardcoded "300 Pcs". */
+  const totalStock = useMemo(
+    () => product.variants.reduce((sum, v) => sum + Math.max(v.stock, 0), 0),
+    [product],
+  );
+  const limitLabel =
+    totalStock > 0 ? `Limited ${Math.min(totalStock, 500)} Pcs` : "Archival Run";
+
+  /* Size-guide title follows the product category. */
+  const guideTitle = /hoodie|fleece|sweat/i.test(product.category)
+    ? "Hoodie Size Guide"
+    : /tee|shirt|top/i.test(product.category)
+      ? "Tee Size Guide"
+      : /pant|cargo|bottom|short/i.test(product.category)
+        ? "Bottoms Size Guide"
+        : "Size Guide";
+
+  /* Modal hygiene: Escape closes, page scroll locks while open. */
+  useEffect(() => {
+    if (!sizeGuideOpen && !zoomOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSizeGuideOpen(false);
+        setZoomOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [sizeGuideOpen, zoomOpen]);
+
   const ctaLabel = added
-    ? "Added to Bag ✓"
+    ? "Added to Bag"
     : selectedVariant
       ? "Add to Bag"
       : "Sold Out";
@@ -110,50 +145,29 @@ export function PdpClient({ product }: Props) {
                 className="object-cover"
               />
               {img.label ? (
-                <span className="absolute bottom-1 left-1 rounded bg-charcoal/80 px-1 text-[9px] font-bold text-canvas">
+                <span className="absolute bottom-1 left-1 rounded bg-charcoal/80 px-1 text-[10px] font-bold text-canvas">
                   {img.label}
                 </span>
               ) : null}
             </button>
           ))}
-          {/* 3D customizer slot in the rail */}
-          <button
-            type="button"
-            onClick={() => setActiveImage(-1)}
-            aria-label="Open 3D customizer"
-            className={cn(
-              "flex h-24 w-20 shrink-0 flex-col items-center justify-center gap-1 rounded bg-charcoal text-canvas transition-all",
-              activeImage === -1 ? "ring-2 ring-brand" : "opacity-80 hover:opacity-100",
-            )}
-          >
-            <span className="material-symbols-outlined text-xl">view_in_ar</span>
-            <span className="font-display text-[9px] font-bold uppercase tracking-wider">
-              3D View
-            </span>
-          </button>
         </div>
 
         {/* Main frame */}
         <div className="relative min-h-[520px] flex-1 overflow-hidden rounded-lg bg-surface-muted shadow-sm md:min-h-[640px]">
-          {activeImage === -1 ? (
-            <div className="flex h-full min-h-[560px] w-full items-center justify-center bg-canvas md:min-h-[660px]">
-              <ProductCustomizer product={product} />
-            </div>
-          ) : (
-            <div className="relative h-full min-h-[560px] w-full md:min-h-[660px]">
-              {product.images[activeImage] ? (
-                <Image
-                  key={product.images[activeImage].id}
-                  src={product.images[activeImage].url}
-                  alt={product.images[activeImage].alt}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 55vw"
-                  className="object-cover object-top transition-opacity duration-300"
-                />
-              ) : null}
-            </div>
-          )}
+          <div className="relative h-full min-h-[520px] w-full md:min-h-[640px]">
+            {product.images[activeImage] ? (
+              <Image
+                key={product.images[activeImage].id}
+                src={product.images[activeImage].url}
+                alt={product.images[activeImage].alt}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 55vw"
+                className="object-cover object-top transition-opacity duration-300"
+              />
+            ) : null}
+          </div>
 
           {/* Badges */}
           <div className="absolute left-4 top-4 z-10 flex flex-col gap-1.5">
@@ -161,7 +175,7 @@ export function PdpClient({ product }: Props) {
               <span className="material-symbols-outlined text-base">
                 local_fire_department
               </span>
-              <span>Limited 300 Pcs</span>
+              <span>{limitLabel}</span>
             </div>
             <div className="rounded-full bg-white/90 px-3 py-1.5 font-display text-[10px] font-bold uppercase tracking-wider text-charcoal backdrop-blur-md">
               {product.gsmLabel} Heavy Cotton
@@ -183,7 +197,8 @@ export function PdpClient({ product }: Props) {
           <button
             type="button"
             aria-label="Zoom image"
-            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/80 text-charcoal shadow-md backdrop-blur-md transition-all hover:scale-110 hover:bg-white"
+            onClick={() => setZoomOpen(true)}
+            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/80 text-charcoal shadow-md backdrop-blur-md transition-colors hover:bg-white"
           >
             <span className="material-symbols-outlined text-xl">zoom_in</span>
           </button>
@@ -233,7 +248,7 @@ export function PdpClient({ product }: Props) {
               </span>
             ) : null}
             {savePct ? (
-              <span className="rounded-full bg-error-container px-2 py-0.5 font-display text-[10px] font-bold uppercase text-error">
+              <span className="rounded-full bg-jade-tint px-2 py-0.5 font-display text-[10px] font-bold uppercase text-jade-deep">
                 Save {savePct}%
               </span>
             ) : null}
@@ -390,9 +405,13 @@ export function PdpClient({ product }: Props) {
                     : "bg-brand text-white hover:bg-brand-dark",
               )}
             >
-              <span className="material-symbols-outlined text-xl">shopping_bag</span>
+              <span className="material-symbols-outlined text-xl">
+                {added ? "check_circle" : "shopping_bag"}
+              </span>
               <span className="truncate">{ctaLabel}</span>
-              <span className="material-symbols-outlined text-lg">arrow_forward</span>
+              {added ? null : (
+                <span className="material-symbols-outlined text-lg">arrow_forward</span>
+              )}
             </button>
 
             <button
@@ -501,16 +520,20 @@ export function PdpClient({ product }: Props) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/60 p-4 backdrop-blur-md"
           role="dialog"
           aria-modal="true"
-          aria-label="Hoodie size guide"
+          aria-label={guideTitle}
+          onClick={() => setSizeGuideOpen(false)}
         >
-          <div className="relative w-full max-w-2xl rounded-xl bg-white p-8 shadow-2xl">
+          <div
+            className="relative w-full max-w-2xl rounded-xl bg-white p-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-4 flex items-center justify-between pb-2">
               <div>
                 <span className="font-display text-[10px] font-bold uppercase text-brand">
                   Fit Architecture
                 </span>
                 <h3 className="font-display text-2xl font-bold uppercase text-charcoal">
-                  Hoodie Size Guide
+                  {guideTitle}
                 </h3>
               </div>
               <button
@@ -567,6 +590,35 @@ export function PdpClient({ product }: Props) {
               </button>
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {/* ========================= ZOOM LIGHTBOX ========================= */}
+      {zoomOpen && product.images[activeImage] ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/80 p-6 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Zoomed product image"
+          onClick={() => setZoomOpen(false)}
+        >
+          <div className="relative h-full max-h-[86vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-surface-muted shadow-2xl">
+            <Image
+              src={product.images[activeImage].url}
+              alt={product.images[activeImage].alt}
+              fill
+              sizes="(max-width: 1024px) 100vw, 60vw"
+              className="object-contain"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setZoomOpen(false)}
+            aria-label="Close zoom"
+            className="absolute right-6 top-6 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-charcoal shadow-lg transition-colors hover:bg-white"
+          >
+            <span className="material-symbols-outlined text-xl">close</span>
+          </button>
         </div>
       ) : null}
     </div>

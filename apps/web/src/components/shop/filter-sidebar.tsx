@@ -2,29 +2,24 @@
 
 /**
  * Catalog filter sidebar — URL-driven state (shareable, cacheable, SSR-safe).
+ * Only real, API-backed filters live here (category + size). Decorative
+ * widgets that looked interactive but did nothing have been removed.
  */
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { DROP } from "@/lib/drop";
 
 const CATEGORIES = [
-  { id: "", label: "All Pieces", count: 48 },
-  { id: "HOODIES", label: "Hoodies & Sweats", count: 14 },
-  { id: "TEES", label: "Oversized Tees", count: 12 },
-  { id: "BOTTOMS", label: "Bottoms & Cargos", count: 9 },
-  { id: "OUTERWEAR", label: "Outerwear & Shells", count: 7 },
-  { id: "HEADWEAR", label: "Headwear & Utility", count: 6 },
+  { id: "", label: "All Pieces" },
+  { id: "HOODIES", label: "Hoodies & Sweats" },
+  { id: "TEES", label: "Oversized Tees" },
+  { id: "BOTTOMS", label: "Bottoms & Cargos" },
+  { id: "OUTERWEAR", label: "Outerwear & Shells" },
+  { id: "HEADWEAR", label: "Headwear & Utility" },
 ];
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
-
-const SWATCHES = [
-  { hex: "#F45B50", title: "Coral Punch" },
-  { hex: "#F5F3F0", title: "Raw Cream" },
-  { hex: "#151515", title: "Onyx Black" },
-  { hex: "#3E5241", title: "Moss Green" },
-  { hex: "#4A4846", title: "Acid Wash" },
-];
 
 export function FilterSidebar() {
   const pathname = usePathname();
@@ -78,9 +73,7 @@ export function FilterSidebar() {
                   href={buildHref({ category: c.id || null })}
                   className={cn(
                     "flex items-center justify-between rounded-md p-2 transition-colors",
-                    selected
-                      ? "bg-surface-subtle"
-                      : "hover:bg-surface-muted",
+                    selected ? "bg-surface-subtle" : "hover:bg-surface-muted",
                   )}
                 >
                   <span className="flex items-center gap-2">
@@ -90,22 +83,17 @@ export function FilterSidebar() {
                     <span
                       className={cn(
                         "text-sm",
-                        selected
-                          ? "font-bold text-charcoal"
-                          : "text-charcoal-muted group-hover:text-charcoal",
+                        selected ? "font-bold text-charcoal" : "text-charcoal-muted",
                       )}
                     >
                       {c.label}
                     </span>
                   </span>
-                  <span
-                    className={cn(
-                      "font-display text-[10px] font-bold",
-                      selected ? "text-brand" : "text-charcoal-light",
-                    )}
-                  >
-                    {c.count}
-                  </span>
+                  {selected ? (
+                    <span className="material-symbols-outlined text-[16px] text-brand">
+                      check
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}
@@ -137,81 +125,27 @@ export function FilterSidebar() {
             })}
           </div>
         </div>
-
-        {/* Colorway swatches */}
-        <div className="space-y-2 pt-1">
-          <span className="block font-display text-xs font-bold uppercase tracking-wider text-charcoal">
-            Drop Palette
-          </span>
-          <div className="flex flex-wrap items-center gap-2">
-            {SWATCHES.map((s) => (
-              <button
-                key={s.title}
-                type="button"
-                title={s.title}
-                aria-label={`Filter by ${s.title}`}
-                className="h-8 w-8 rounded-full transition-transform hover:scale-105"
-                style={{ backgroundColor: s.hex }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Price scope */}
-        <div className="space-y-2 pt-1">
-          <div className="flex items-center justify-between">
-            <span className="font-display text-xs font-bold uppercase tracking-wider text-charcoal">
-              Price Scope
-            </span>
-            <span className="font-display text-[10px] font-bold text-brand">
-              $25 – $150
-            </span>
-          </div>
-          <div className="flex justify-between font-display text-[10px] text-charcoal-light">
-            <span>$20</span>
-            <span>$200</span>
-          </div>
-        </div>
-
-        {/* Vault status */}
-        <div className="flex items-center justify-between rounded bg-surface-muted p-4 pt-1">
-          <div className="flex flex-col pt-1">
-            <span className="font-display text-xs font-bold uppercase tracking-wider text-charcoal">
-              Vault Status
-            </span>
-            <span className="text-xs text-charcoal-muted">In stock ready to ship</span>
-          </div>
-          <span className="relative inline-flex h-6 w-11 items-center rounded-full bg-brand">
-            <span className="ml-[26px] h-5 w-5 rounded-full bg-white shadow" />
-          </span>
-        </div>
       </div>
 
-      {/* SMS banner */}
+      {/* Drop alerts — honest pointer, no fake form */}
       <div className="relative overflow-hidden rounded-lg bg-surface-subtle p-6 text-charcoal">
         <span className="font-display text-[10px] font-bold uppercase tracking-widest text-brand">
-          Secret Drop 005
+          Next Vault
         </span>
         <h5 className="mt-1 font-display text-lg font-bold uppercase tracking-tight">
-          Get SMS Ping
+          {DROP.batchLabel} Countdown
         </h5>
-        <p className="mb-3 mt-1 text-xs text-charcoal-muted">
-          Never miss a 60-second sellout release.
+        <p className="mb-4 mt-1 text-xs text-charcoal-muted">
+          Watch the live window on the drops page — allocations close when the
+          timer hits zero.
         </p>
-        <div className="flex gap-1">
-          <input
-            type="tel"
-            placeholder="+1 (555) 000-0000"
-            aria-label="Phone number"
-            className="w-full rounded-full bg-white px-3 py-1.5 text-xs outline-none"
-          />
-          <Link
-            href="/drops"
-            className="rounded-full bg-brand px-4 font-display text-[10px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-brand-dark"
-          >
-            Join
-          </Link>
-        </div>
+        <Link
+          href="/drops"
+          className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 font-display text-[10px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-brand-dark"
+        >
+          Open Drops
+          <span className="material-symbols-outlined text-sm">arrow_forward</span>
+        </Link>
       </div>
     </aside>
   );

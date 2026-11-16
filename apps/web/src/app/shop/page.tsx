@@ -54,6 +54,8 @@ async function loadCatalog(params: {
 export default async function ShopPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const { items, total } = await loadCatalog(sp);
+  /* Spotlight = the second-most-featured piece (first one headlines the hero). */
+  const spotlight = items.find((p) => p.slug !== items[0]?.slug) ?? items[1] ?? items[0] ?? null;
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-canvas">
@@ -76,15 +78,15 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
                   </span>
                 </div>
                 <h1 className="mt-1 font-display text-3xl font-bold uppercase leading-none tracking-tight text-white md:text-4xl">
-                  Where Art Meets{" "}
+                  Shop The{" "}
                   <span className="block font-black italic text-canvas">
-                    Your Street Style.
+                    Vault.
                   </span>
                 </h1>
                 <p className="mt-1 max-w-lg text-sm text-white/90">
-                  High-contrast kinetic apparel engineered for rebellious street
-                  grit. Featuring custom heavyweight fleece, modular hardware,
-                  and raw aesthetic cuts.
+                  Where art meets street style — high-contrast kinetic apparel
+                  in limited batches. Heavyweight fleece, modular hardware, raw
+                  aesthetic cuts.
                 </p>
                 <div className="flex items-center gap-3 pt-1">
                   <div className="flex -space-x-2">
@@ -106,7 +108,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
                     )}
                   </div>
                   <div className="flex flex-col">
-                    <div className="flex items-center gap-0.5 text-amber-300">
+                    <div className="flex items-center gap-0.5 text-brand">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <span key={i} className="material-symbols-outlined filled text-xs">
                           star
@@ -120,49 +122,59 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
                 </div>
               </div>
 
-              {/* Spotlight teaser card */}
-              <div className="relative mt-2 flex justify-end lg:col-span-5 lg:mt-0">
-                <div className="relative w-full max-w-sm rounded-lg bg-white p-4 text-charcoal shadow-2xl">
-                  <div className="flex items-center justify-between pb-1">
-                    <span className="rounded-full bg-brand/10 px-2 py-1 font-display text-[10px] font-bold uppercase tracking-wider text-brand">
-                      Spotlight Drop
-                    </span>
-                    <span className="font-display text-[10px] font-bold uppercase tracking-widest text-charcoal-muted">
-                      04 / 48
-                    </span>
-                  </div>
-                  <div className="group relative my-2 h-52 overflow-hidden rounded bg-surface-muted">
-                    <Image
-                      src="/products/img_5892cd524a.jpg"
-                      alt="Prism Cyber Pullover spotlight"
-                      fill
-                      sizes="(max-width: 1024px) 100vw, 380px"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute bottom-2 left-2 rounded-full bg-charcoal/80 px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wider text-canvas backdrop-blur-sm">
-                      In Stock • Ships 24h
+              {/* Spotlight teaser — live catalog data, never hardcoded */}
+              {spotlight ? (
+                <div className="relative mt-2 flex justify-end lg:col-span-5 lg:mt-0">
+                  <div className="relative w-full max-w-sm rounded-lg bg-white p-4 text-charcoal shadow-2xl">
+                    <div className="flex items-center justify-between pb-1">
+                      <span className="rounded-full bg-brand/10 px-2 py-1 font-display text-[10px] font-bold uppercase tracking-wider text-brand">
+                        Spotlight Drop
+                      </span>
+                      {spotlight.unitsLeftLabel ? (
+                        <span className="font-display text-[10px] font-bold uppercase tracking-widest text-charcoal-muted">
+                          {spotlight.unitsLeftLabel}
+                        </span>
+                      ) : null}
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-display text-base font-bold uppercase tracking-tight text-charcoal">
-                        Prism Cyber Pullover
-                      </h4>
-                      <p className="text-xs text-charcoal-muted">480 GSM Custom Loopback</p>
+                    <div className="group relative my-2 h-52 overflow-hidden rounded bg-surface-muted">
+                      <Image
+                        src={spotlight.images[0]?.url ?? ""}
+                        alt={spotlight.images[0]?.alt ?? spotlight.name}
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 380px"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute bottom-2 left-2 rounded-full bg-charcoal/80 px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wider text-canvas backdrop-blur-sm">
+                        {spotlight.variants.some((v) => v.stock > 0)
+                          ? "In Stock • Ships 24h"
+                          : "Sold Out"}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-display text-sm font-bold text-brand">$88.00</span>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-display text-base font-bold uppercase tracking-tight text-charcoal">
+                          {spotlight.name}
+                        </h4>
+                        <p className="text-xs text-charcoal-muted">
+                          {spotlight.gsmLabel || spotlight.fabricLabel || spotlight.collection}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-display text-sm font-bold text-brand">
+                          ${((spotlight.variants[0]?.priceMinor ?? 0) / 100).toFixed(2)}
+                        </span>
+                      </div>
                     </div>
+                    <Link
+                      href={`/product/${spotlight.slug}`}
+                      className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-full bg-charcoal py-2 font-display text-xs font-bold uppercase tracking-wider text-canvas shadow-md transition-colors hover:bg-charcoal-muted"
+                    >
+                      <span>Quick Claim</span>
+                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </Link>
                   </div>
-                  <Link
-                    href="/product/prism-cyber-pullover"
-                    className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-full bg-charcoal py-2 font-display text-xs font-bold uppercase tracking-wider text-canvas shadow-md transition-colors hover:bg-charcoal-muted"
-                  >
-                    <span>Quick Claim</span>
-                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                  </Link>
                 </div>
-              </div>
+              ) : null}
             </div>
           </div>
         </section>

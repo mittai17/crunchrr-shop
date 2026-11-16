@@ -7,6 +7,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatUsd } from "@/lib/utils";
 
 type SearchHit = {
@@ -37,8 +38,10 @@ type SearchOverlayProps = {
 };
 
 export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -74,8 +77,9 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
       try {
         const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
         const res = await fetch(`${base}/api/products?search=${encodeURIComponent(q)}&limit=8`);
-        const json = (await res.json()) as { items?: SearchHit[] };
+        const json = (await res.json()) as { items?: SearchHit[]; total?: number };
         setHits(Array.isArray(json.items) ? json.items : []);
+        setTotal(typeof json.total === "number" ? json.total : null);
       } catch {
         setHits([]);
       } finally {
@@ -115,7 +119,7 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
             onKeyDown={(e) => {
               if (e.key === "Enter" && query.trim()) {
                 onClose();
-                window.location.href = `/shop?search=${encodeURIComponent(query.trim())}`;
+                router.push(`/shop?search=${encodeURIComponent(query.trim())}`);
               }
             }}
             placeholder="Search the archive — hoodies, tees, drops…"
@@ -151,9 +155,10 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
               <Link
                 href="/shop"
                 onClick={onClose}
-                className="mt-3 inline-block font-display text-[11px] font-bold uppercase tracking-wider text-brand hover:underline"
+                className="mt-3 inline-flex items-center gap-1 font-display text-[11px] font-bold uppercase tracking-wider text-brand hover:underline"
               >
-                Browse all 16 pieces →
+                Browse all{total ? ` ${total}` : ""} pieces
+                <span className="material-symbols-outlined text-sm">arrow_forward</span>
               </Link>
             </div>
           ) : hits.length > 0 ? (
@@ -190,7 +195,7 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                         {formatUsd(hitPriceMinor(h) as number)}
                       </span>
                     ) : null}
-                    <span className="material-symbols-outlined text-base text-charcoal-light">
+                    <span className="material-symbols-outlined text-base text-charcoal-muted">
                       arrow_forward
                     </span>
                   </Link>
@@ -224,15 +229,15 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
         </div>
 
         <div className="flex items-center justify-between border-t border-neutral-100 bg-surface-muted/60 px-5 py-2.5">
-          <span className="font-display text-[9px] font-bold uppercase tracking-[0.2em] text-charcoal-light">
+          <span className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-charcoal-muted">
             Crunchrr Vault Search
           </span>
-          <span className="flex items-center gap-1 text-[10px] text-charcoal-light">
-            <kbd className="rounded bg-white px-1.5 py-0.5 font-display text-[9px] shadow-sm">
+          <span className="flex items-center gap-1 text-[10px] text-charcoal-muted">
+            <kbd className="rounded bg-white px-1.5 py-0.5 font-display text-[10px] shadow-sm">
               ↵
             </kbd>
             all results
-            <kbd className="ml-1 rounded bg-white px-1.5 py-0.5 font-display text-[9px] shadow-sm">
+            <kbd className="ml-1 rounded bg-white px-1.5 py-0.5 font-display text-[10px] shadow-sm">
               esc
             </kbd>
             close

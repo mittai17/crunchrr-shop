@@ -90,7 +90,7 @@ export default function TrackOrderPage() {
         <div className="mb-8">
           <div className="mb-2 flex items-center gap-2">
             <span className="material-symbols-outlined text-xl text-brand">local_shipping</span>
-            <span className="font-display text-[11px] font-bold uppercase tracking-[0.22em] text-charcoal-light">
+            <span className="font-display text-[11px] font-bold uppercase tracking-[0.22em] text-charcoal-muted">
               Order Radar
             </span>
           </div>
@@ -98,8 +98,9 @@ export default function TrackOrderPage() {
             Track Your Order
           </h1>
           <p className="mt-2 max-w-lg text-sm text-charcoal-muted">
-            Enter the order number from your confirmation — e.g.{" "}
-            <span className="font-display font-bold text-charcoal">CR-DACD4Y-EHUT</span>.
+            Enter the order number from your confirmation —{" "}
+            <span className="font-display font-bold text-charcoal">CR-DACD4Y-EHUT</span>{" "}
+            (example format).
           </p>
         </div>
 
@@ -153,7 +154,7 @@ export default function TrackOrderPage() {
             <div className="rounded-3xl border border-neutral-200/70 bg-white p-6 shadow-card md:p-8">
               <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <span className="mb-1 block font-display text-[10px] font-bold uppercase tracking-[0.2em] text-charcoal-light">
+                  <span className="mb-1 block font-display text-[10px] font-bold uppercase tracking-[0.2em] text-charcoal-muted">
                     Order
                   </span>
                   <span className="font-display text-2xl font-bold tracking-tight text-charcoal">
@@ -161,7 +162,7 @@ export default function TrackOrderPage() {
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="mb-1 block font-display text-[10px] font-bold uppercase tracking-[0.2em] text-charcoal-light">
+                  <span className="mb-1 block font-display text-[10px] font-bold uppercase tracking-[0.2em] text-charcoal-muted">
                     Total
                   </span>
                   <span className="font-display text-2xl font-bold text-charcoal">
@@ -239,7 +240,7 @@ export default function TrackOrderPage() {
                           >
                             {step.label}
                             {current ? (
-                              <span className="ml-2 rounded-full bg-jade-tint px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-wider text-jade-deep">
+                              <span className="ml-2 rounded-full bg-jade-tint px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wider text-jade-deep">
                                 Current
                               </span>
                             ) : null}
@@ -247,7 +248,7 @@ export default function TrackOrderPage() {
                           <span
                             className={cn(
                               "block text-xs",
-                              done ? "text-charcoal-muted" : "text-charcoal-light/70",
+                              done ? "text-charcoal-muted" : "text-charcoal-muted/80",
                             )}
                           >
                             {step.hint}
@@ -261,7 +262,7 @@ export default function TrackOrderPage() {
 
               {/* Items */}
               <div className="border-t border-neutral-100 pt-5">
-                <span className="mb-3 block font-display text-[10px] font-bold uppercase tracking-[0.2em] text-charcoal-light">
+                <span className="mb-3 block font-display text-[10px] font-bold uppercase tracking-[0.2em] text-charcoal-muted">
                   Pieces
                 </span>
                 <ul className="space-y-1.5">
@@ -275,7 +276,7 @@ export default function TrackOrderPage() {
                           <span className="font-display font-bold">{l.quantity}×</span>{" "}
                           {l.name}
                         </span>
-                        <span className="shrink-0 font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-light">
+                        <span className="shrink-0 font-display text-[10px] font-bold uppercase tracking-wider text-charcoal-muted">
                           {l.sku}
                         </span>
                       </li>
@@ -287,7 +288,7 @@ export default function TrackOrderPage() {
               {/* Partner routing */}
               {order.splits.length > 0 ? (
                 <div className="border-t border-neutral-100 pt-5">
-                  <span className="mb-3 block font-display text-[10px] font-bold uppercase tracking-[0.2em] text-charcoal-light">
+                  <span className="mb-3 block font-display text-[10px] font-bold uppercase tracking-[0.2em] text-charcoal-muted">
                     Partner Routing
                   </span>
                   <div className="space-y-2">
