@@ -68,7 +68,7 @@ export function ProductCard({ product, variant, className }: Props) {
           {product.badge ? (
             <span
               className={cn(
-                "absolute left-3 top-3 rounded-full px-2.5 py-1 font-display text-[9px] font-bold uppercase tracking-[0.14em] shadow-sm",
+                "absolute left-3 top-3 rounded-full px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.14em] shadow-sm",
                 BADGE_TONES[product.badge.tone] ?? BADGE_TONES.charcoal,
               )}
             >

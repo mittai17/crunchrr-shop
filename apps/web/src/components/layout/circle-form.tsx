@@ -6,10 +6,11 @@
  * is faked; when a real newsletter endpoint lands, swap persist() for it.
  */
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "crunchrr.circle-email";
 
-export function CircleForm() {
+export function CircleForm({ dark = false }: { dark?: boolean }) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState<string | null>(null);
@@ -67,7 +68,9 @@ export function CircleForm() {
           Join
         </button>
       </div>
-      {error ? <p className="mt-2 text-xs text-error">{error}</p> : null}
+      {error ? (
+        <p className={cn("mt-2 text-xs", dark ? "text-white/90" : "text-error")}>{error}</p>
+      ) : null}
     </div>
   );
 }

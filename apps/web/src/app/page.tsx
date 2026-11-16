@@ -5,6 +5,9 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { ProductCard } from "@/components/shop/product-card";
 import { DropCountdown } from "@/components/drops/drop-countdown";
+import { CircleForm } from "@/components/layout/circle-form";
+import { formatUsd } from "@/lib/utils";
+import { DROP, secondsToVaultClose } from "@/lib/drop";
 
 // Revalidate every 5 minutes; catalog API responses are also tagged for on-demand refresh.
 export const revalidate = 300;
@@ -26,13 +29,6 @@ async function getHomeData(): Promise<HomeData> {
   }
 }
 
-/** Server-computed countdown seed (matches mockup cadence). */
-function countdownSeed(): number {
-  const base = 4 * 3600 + 18 * 60;
-  const jitter = Math.floor(Date.now() / 60_000) % 3600; // per-minute drift
-  return base - jitter;
-}
-
 export default async function HomePage() {
   const { featured, hero } = await getHomeData();
   const heroImage = hero?.images.find((i) => i.label?.startsWith("05")) ?? hero?.images[0];
@@ -49,8 +45,8 @@ export default async function HomePage() {
             {/* Running headline */}
             <div className="mb-8 flex select-none flex-col justify-between gap-4 border-b border-neutral-200/60 pb-5 sm:flex-row sm:items-end">
               <div className="flex items-baseline gap-3">
-                <span className="font-display text-sm font-medium uppercase tracking-[0.25em] text-charcoal-light md:text-base">
-                  Archival Vol. 04
+                <span className="font-display text-sm font-medium uppercase tracking-[0.25em] text-charcoal-muted md:text-base">
+                  {DROP.dropLabel}
                 </span>
                 <span className="hidden text-neutral-300 sm:inline">—</span>
                 <h1 className="font-display text-3xl font-bold uppercase tracking-tight text-charcoal sm:text-4xl lg:text-5xl">
@@ -58,12 +54,12 @@ export default async function HomePage() {
                 </h1>
               </div>
               <div className="flex items-baseline gap-3 sm:text-right">
-                <span className="font-display text-sm font-medium uppercase tracking-[0.25em] text-charcoal-light md:text-base">
-                  Aesthetic System
+                <span className="font-display text-sm font-medium uppercase tracking-[0.25em] text-charcoal-muted md:text-base">
+                  Single Batch
                 </span>
                 <span className="hidden text-neutral-300 sm:inline">—</span>
                 <span className="font-display text-3xl font-bold uppercase tracking-tight text-brand sm:text-4xl lg:text-5xl">
-                  Keep the Vibe
+                  Never Restocked
                 </span>
               </div>
             </div>
@@ -81,26 +77,26 @@ export default async function HomePage() {
                   <div className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-white" />
                     <span className="font-display text-[11px] font-semibold uppercase tracking-[0.18em]">
-                      Future Threads
+                      Kinetic Cut
                     </span>
                   </div>
                   <span className="text-xs text-white/60">/</span>
                   <div className="flex items-center gap-2">
                     <span className="font-display text-[11px] font-semibold uppercase tracking-[0.18em]">
-                      Unique Designs
+                      Single Batch
                     </span>
                   </div>
                   <span className="hidden text-xs text-white/60 sm:inline">/</span>
                   <div className="hidden items-center gap-2 sm:flex">
                     <span className="font-display text-[11px] font-semibold uppercase tracking-[0.18em]">
-                      Limited Drops
+                      Never Restocked
                     </span>
                   </div>
                 </div>
 
                 {/* Floating featured card */}
                 {hero ? (
-                  <div className="z-30 flex w-full max-w-[310px] items-center gap-4 rounded-2xl border border-white/80 bg-white/95 p-3.5 shadow-float backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1 sm:w-auto">
+                  <div className="z-30 flex w-full max-w-[310px] items-center gap-4 rounded-2xl border border-white/80 bg-white/95 p-3.5 shadow-float backdrop-blur-xl sm:w-auto">
                     <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-neutral-200/50 bg-neutral-100">
                       {heroThumb ? (
                         <Image
@@ -114,22 +110,26 @@ export default async function HomePage() {
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col">
                       <div className="flex items-center justify-between">
-                        <span className="font-display text-[9px] font-bold uppercase tracking-[0.18em] text-brand">
+                        <span className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-brand">
                           Featured Item
                         </span>
-                        <span className="text-[10px] font-medium text-charcoal-light">
-                          Edition 01
-                        </span>
+                        {hero.unitsLeftLabel ? (
+                          <span className="text-[10px] font-medium text-charcoal-muted">
+                            {hero.unitsLeftLabel}
+                          </span>
+                        ) : null}
                       </div>
                       <h4 className="mt-0.5 truncate font-display text-xs font-bold text-charcoal">
                         {hero.name}
                       </h4>
                       <p className="truncate text-[11px] text-charcoal-muted">
-                        {hero.gsmLabel || hero.fabricLabel} finish
+                        {hero.gsmLabel || hero.fabricLabel
+                          ? `${hero.gsmLabel || hero.fabricLabel} finish`
+                          : hero.tagline}
                       </p>
                       <div className="mt-2 flex items-center justify-between border-t border-neutral-100 pt-1">
                         <span className="font-display text-xs font-bold text-charcoal">
-                          ${(hero.variants[0]?.priceMinor ?? 0) / 100}
+                          {formatUsd(hero.variants[0]?.priceMinor ?? 0)}
                         </span>
                         <Link
                           href={`/product/${hero.slug}`}
@@ -168,7 +168,7 @@ export default async function HomePage() {
               <div className="relative z-20 flex flex-col justify-between gap-8 pt-10 md:flex-row md:items-end">
                 <div className="max-w-md text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.38)]">
                   <span className="mb-2 inline-block font-display text-[11px] font-bold uppercase tracking-[0.22em] text-white/90">
-                    New Season Drop 04
+                    {DROP.dropLabel} — The Vault
                   </span>
                   <h2 className="mb-3 font-display text-3xl font-bold uppercase leading-[1.05] tracking-tight text-white sm:text-4xl lg:text-5xl">
                     Where Art Meets <br />
@@ -181,7 +181,7 @@ export default async function HomePage() {
                   <div className="flex items-center gap-4">
                     <Link
                       href="/drops"
-                      className="inline-flex items-center gap-3 rounded-full bg-white px-7 py-3.5 font-display text-xs font-bold uppercase tracking-[0.16em] text-charcoal shadow-[0_8px_20px_rgba(0,0,0,0.12)] transition-all duration-200 hover:bg-canvas hover:scale-105"
+                      className="inline-flex items-center gap-3 rounded-full bg-white px-7 py-3.5 font-display text-xs font-bold uppercase tracking-[0.16em] text-charcoal shadow-[0_8px_20px_rgba(0,0,0,0.12)] transition-colors duration-200 hover:bg-canvas"
                     >
                       <span>Explore Drops</span>
                       <span className="material-symbols-outlined text-[16px]">
@@ -228,7 +228,7 @@ export default async function HomePage() {
                       ))}
                     </div>
                     <span className="font-display text-[10px] font-bold tracking-tight text-charcoal">
-                      Verified Collectors Guild
+                      Verified Collectors
                     </span>
                   </div>
                 </div>
@@ -246,7 +246,7 @@ export default async function HomePage() {
                 Vault
               </span>
               <span className="font-display text-xs font-bold uppercase tracking-[0.14em] text-charcoal">
-                CYBER PASTEL CAPSULE — BATCH 004
+                {DROP.name} — {DROP.batchLabel}
               </span>
             </div>
             <div className="flex items-center gap-8">
@@ -257,7 +257,7 @@ export default async function HomePage() {
                 <span className="font-display text-[10px] font-medium uppercase tracking-[0.16em]">
                   Window Closes In:
                 </span>
-                <DropCountdown initialSeconds={countdownSeed()} />
+                <DropCountdown initialSeconds={secondsToVaultClose()} />
               </div>
               <div className="hidden h-3 w-px bg-neutral-200 sm:block" />
               <Link
@@ -318,9 +318,20 @@ export default async function HomePage() {
               <ProductCard key={product.id} product={product} />
             ))}
             {featured.length === 0 ? (
-              <p className="col-span-full text-sm text-charcoal-muted">
-                Catalog is warming up — the API may still be booting.
-              </p>
+              <div className="col-span-full flex flex-col items-center rounded-2xl border border-neutral-200/70 bg-white px-6 py-14 text-center shadow-card">
+                <span className="material-symbols-outlined mb-3 text-4xl text-charcoal-light">
+                  inventory_2
+                </span>
+                <p className="mb-1 font-display text-sm font-bold uppercase text-charcoal">
+                  Catalog is warming up
+                </p>
+                <p className="max-w-sm text-sm text-charcoal-muted">
+                  The vault API may still be booting — refresh in a moment.
+                </p>
+                <Link href="/shop" className="btn-pill-coral mt-5">
+                  Check The Shop
+                </Link>
+              </div>
             ) : null}
           </div>
         </section>
@@ -348,20 +359,20 @@ export default async function HomePage() {
               <div className="mb-8 grid grid-cols-3 gap-4 rounded-2xl border border-neutral-200/70 bg-white p-5 shadow-sm">
                 <div>
                   <div className="font-display text-2xl font-bold text-charcoal">500</div>
-                  <div className="mt-0.5 font-display text-[10px] font-medium uppercase tracking-wider text-charcoal-light">
+                  <div className="mt-0.5 font-display text-[10px] font-medium uppercase tracking-wider text-charcoal-muted">
                     Units / Batch
                   </div>
                 </div>
                 <div>
                   <div className="font-display text-2xl font-bold text-charcoal">100%</div>
-                  <div className="mt-0.5 font-display text-[10px] font-medium uppercase tracking-wider text-charcoal-light">
+                  <div className="mt-0.5 font-display text-[10px] font-medium uppercase tracking-wider text-charcoal-muted">
                     Bio-Washed
                   </div>
                 </div>
                 <div>
                   <div className="font-display text-2xl font-bold text-brand">4.9/5</div>
-                  <div className="mt-0.5 font-display text-[10px] font-medium uppercase tracking-wider text-charcoal-light">
-                    Tribe Score
+                  <div className="mt-0.5 font-display text-[10px] font-medium uppercase tracking-wider text-charcoal-muted">
+                    Collector Rating
                   </div>
                 </div>
               </div>
@@ -376,9 +387,10 @@ export default async function HomePage() {
                 </Link>
                 <Link
                   href="/manifesto"
-                  className="font-display text-xs font-semibold uppercase tracking-[0.16em] text-charcoal transition-colors hover:text-brand"
+                  className="inline-flex items-center gap-1 font-display text-xs font-semibold uppercase tracking-[0.16em] text-charcoal transition-colors hover:text-brand"
                 >
-                  Read The Manifesto →
+                  Read The Manifesto
+                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
                 </Link>
               </div>
             </div>
@@ -435,7 +447,7 @@ export default async function HomePage() {
             <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
             <div className="relative z-10 mx-auto max-w-2xl">
               <span className="mb-3 inline-block font-display text-[10px] font-bold uppercase tracking-[0.25em] text-brand">
-                VIP Access Key
+                Priority Access
               </span>
               <h2 className="mb-4 font-display text-3xl font-bold uppercase leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
                 Never mass produced.
@@ -443,27 +455,12 @@ export default async function HomePage() {
                 <span className="text-white/60">Never compromised.</span>
               </h2>
               <p className="mx-auto mb-8 max-w-md text-xs font-light leading-relaxed text-white/70 sm:text-sm">
-                Join over 42,000 collectors globally. Receive silent private
-                release SMS 10 minutes prior to public vault opening.
+                Join over 42,000 collectors globally. Allocation codes and early
+                vault access land in your inbox before the window opens.
               </p>
-              <form
-                className="mx-auto flex max-w-md flex-col items-center justify-center gap-3 sm:flex-row"
-                action="/drops"
-                method="get"
-              >
-                <input
-                  type="tel"
-                  placeholder="Enter mobile number (+1 / +44)..."
-                  aria-label="Mobile number"
-                  className="w-full rounded-full border border-white/20 bg-white/10 px-5 py-3.5 text-xs text-white outline-none backdrop-blur-md transition-colors placeholder:text-white/40 focus:border-brand"
-                />
-                <button
-                  type="submit"
-                  className="w-full shrink-0 rounded-full bg-brand px-7 py-3.5 font-display text-xs font-bold uppercase tracking-[0.16em] text-white shadow-md transition-all hover:bg-brand-dark sm:w-auto"
-                >
-                  Request Key
-                </button>
-              </form>
+              <div className="mx-auto max-w-md">
+                <CircleForm dark />
+              </div>
             </div>
           </div>
         </section>

@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { DropCountdown } from "@/components/drops/drop-countdown";
 import { ProductCard } from "@/components/shop/product-card";
-import { DROP } from "@/lib/drop";
+import { DROP, secondsToVaultClose } from "@/lib/drop";
 
 export const revalidate = 60;
 
@@ -14,13 +14,6 @@ export const metadata: Metadata = {
   description:
     "Live and upcoming Crunchrr drops: batch windows, allocation priority, and the archival log of sold-out releases.",
 };
-
-/** Seconds until the next UTC midnight — a real, deterministic deadline. */
-function secondsToVaultClose(): number {
-  const now = new Date();
-  const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
-  return Math.max(60, Math.round((midnight - now.getTime()) / 1000));
-}
 
 export default async function DropsPage() {
   let items: Awaited<ReturnType<typeof api.listProducts>>["items"] = [];
@@ -32,7 +25,6 @@ export default async function DropsPage() {
   }
 
   const seed = secondsToVaultClose();
-
   return (
     <div className="flex min-h-screen w-full flex-col bg-canvas">
       <SiteHeader />
