@@ -11,6 +11,25 @@
     --brand: 244 91 80;
     --charcoal: 18 18 18;
     --canvas: 250 248 246;
+
+    /* ---- Geometry scale -------------------------------------------
+       One source of truth for radii, gutters and motion so every
+       surface lands on the same pixel grid. Change a value here and
+       the whole storefront moves together.                              */
+    --radius-card: 1rem; /* 16px — product cards, panels            */
+    --radius-container: 1.5rem; /* 24px — hero / section containers */
+    --radius-pill: 999px; /* pills, chips, icon buttons              */
+    --radius-well: 0.75rem; /* 12px — image wells, inputs           */
+
+    --gutter: 1.5rem; /* 24px — page side padding (mobile)         */
+    --gutter-lg: 3rem; /* 48px — page side padding (desktop)        */
+    --section-y: 4rem; /* 64px — vertical section rhythm (mobile)   */
+    --section-y-lg: 6rem; /* 96px — vertical section rhythm (desktop) */
+
+    --motion-fast: 150ms;
+    --motion-base: 300ms;
+    --motion-slow: 700ms;
+    --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   html {
@@ -88,6 +107,35 @@
 /* ------------------------------------------------------------------ */
 
 @layer components {
+  /* ---- Layout shells ---------------------------------------------
+     Every page section uses one of these so the content edges land on
+     identical pixel columns across the whole storefront.               */
+  .shell {
+    @apply mx-auto w-full max-w-7xl px-6 lg:px-12;
+  }
+
+  .shell-narrow {
+    @apply mx-auto w-full max-w-3xl px-6 lg:px-12;
+  }
+
+  .shell-editorial {
+    @apply mx-auto w-full max-w-4xl px-6 lg:px-12;
+  }
+
+  /* Vertical rhythm for a page section. */
+  .section-y {
+    @apply py-16 lg:py-24;
+  }
+
+  /* ---- Surfaces ---------------------------------------------------- */
+  .surface-card {
+    @apply rounded-2xl border border-neutral-200/70 bg-white shadow-card;
+  }
+
+  .surface-panel {
+    @apply rounded-3xl border border-neutral-200/70 bg-white shadow-card;
+  }
+
   /* Micro label: uppercase Space Grotesk with industrial tracking */
   .micro-label {
     @apply font-display text-[10px] uppercase tracking-overline font-bold;

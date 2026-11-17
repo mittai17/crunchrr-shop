@@ -63,7 +63,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
 
       <main className="w-full">
         {/* ============== Campaign banner (coral) ============== */}
-        <section className="mx-auto w-full max-w-7xl px-6 pb-6 pt-6 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-12 pt-8 lg:px-12 lg:pb-16 lg:pt-12">
           <div className="relative overflow-hidden rounded-xl bg-brand p-6 shadow-xl md:p-10">
             <div className="pointer-events-none absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-white/20 blur-3xl" />
             <div className="pointer-events-none absolute -top-20 left-1/3 h-80 w-80 rounded-full bg-black/15 blur-2xl" />
@@ -77,7 +77,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
                     Limited Edition // Drop 004
                   </span>
                 </div>
-                <h1 className="mt-1 font-display text-3xl font-bold uppercase leading-none tracking-tight text-white md:text-4xl">
+                <h1 className="mt-1 font-display text-3xl font-bold uppercase leading-none tracking-tight text-white md:text-5xl">
                   Shop The{" "}
                   <span className="block font-black italic text-canvas">
                     Vault.
@@ -180,7 +180,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
         </section>
 
         {/* ============== Utility bar ============== */}
-        <section className="mx-auto w-full max-w-7xl px-6 py-3 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 py-4 lg:px-12">
           <div className="flex flex-col items-start justify-between gap-4 rounded-lg bg-white p-4 shadow-sm md:flex-row md:items-center">
             <div className="flex items-center gap-4">
               <div className="flex flex-col">
@@ -223,7 +223,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
         </section>
 
         {/* ============== Catalog grid ============== */}
-        <section className="mx-auto w-full max-w-7xl px-6 pb-16 lg:px-12" id="filters">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-16 lg:px-12 lg:pb-24" id="filters">
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
             <Suspense fallback={<div className="hidden lg:block lg:col-span-3" />}>
               <FilterSidebar />

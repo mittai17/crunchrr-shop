@@ -128,12 +128,12 @@ export default async function ProductPage({ params }: { params: Params }) {
         </div>
 
         {/* Two-column stage */}
-        <section className="mx-auto w-full max-w-7xl px-6 pb-12 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-12 lg:px-12 lg:pb-16">
           <PdpClient product={product} />
         </section>
 
         {/* Coral editorial banner */}
-        <section className="mx-auto w-full max-w-7xl px-6 pb-12 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-12 lg:px-12 lg:pb-16">
           <div className="relative overflow-hidden rounded-xl bg-brand p-6 shadow-xl md:p-10">
             <div className="pointer-events-none absolute bottom-1 right-4 select-none opacity-[0.09]">
               <span className="font-display text-[110px] font-bold leading-none tracking-tighter text-white md:text-[140px]">
@@ -249,7 +249,7 @@ export default async function ProductPage({ params }: { params: Params }) {
         </section>
 
         {/* Complete the fit */}
-        <section className="mx-auto w-full max-w-7xl px-6 pb-16 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-16 lg:px-12 lg:pb-24">
           <div className="mb-6 flex flex-col justify-between gap-2 md:flex-row md:items-end">
             <div>
               <div className="eyebrow mb-1">

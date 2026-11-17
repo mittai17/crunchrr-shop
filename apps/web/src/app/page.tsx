@@ -4,7 +4,7 @@ import { api, type Product } from "@crunchrr/shared";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { ProductCard } from "@/components/shop/product-card";
-import { DropCountdown } from "@/components/drops/drop-countdown";
+import { VaporCountdown } from "@/components/drops/vapor-countdown";
 import { CircleForm } from "@/components/layout/circle-form";
 import { formatUsd } from "@/lib/utils";
 import { DROP, secondsToVaultClose } from "@/lib/drop";
@@ -40,7 +40,7 @@ export default async function HomePage() {
 
       <main className="w-full">
         {/* ============================== HERO ============================== */}
-        <section className="mx-auto w-full max-w-7xl px-6 pb-16 pt-10 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-16 pt-12 lg:px-12 lg:pb-24 lg:pt-16">
           <div className="relative w-full">
             {/* Running headline */}
             <div className="mb-8 flex select-none flex-col justify-between gap-4 border-b border-neutral-200/60 pb-5 sm:flex-row sm:items-end">
@@ -49,9 +49,9 @@ export default async function HomePage() {
                   {DROP.dropLabel}
                 </span>
                 <span className="hidden text-neutral-300 sm:inline">—</span>
-                <h1 className="font-display text-3xl font-bold uppercase tracking-tight text-charcoal sm:text-4xl lg:text-5xl">
+                <p className="font-display text-3xl font-bold uppercase tracking-tight text-charcoal sm:text-4xl lg:text-5xl">
                   Own the Edge
-                </h1>
+                </p>
               </div>
               <div className="flex items-baseline gap-3 sm:text-right">
                 <span className="font-display text-sm font-medium uppercase tracking-[0.25em] text-charcoal-muted md:text-base">
@@ -170,10 +170,10 @@ export default async function HomePage() {
                   <span className="mb-2 inline-block font-display text-[11px] font-bold uppercase tracking-[0.22em] text-white/90">
                     {DROP.dropLabel} — The Vault
                   </span>
-                  <h2 className="mb-3 font-display text-3xl font-bold uppercase leading-[1.05] tracking-tight text-white sm:text-4xl lg:text-5xl">
+                  <h1 className="mb-3 font-display text-3xl font-bold uppercase leading-[1.05] tracking-tight text-white sm:text-4xl lg:text-6xl">
                     Where Art Meets <br />
                     <span className="font-normal italic">Your Style.</span>
-                  </h2>
+                  </h1>
                   <p className="mb-6 max-w-sm text-xs font-light leading-relaxed text-white/85 sm:text-sm">
                     Engineered cuts for kinetic life. Single batch limited
                     production, crafted from 480 GSM organic cotton loopback.
@@ -249,15 +249,19 @@ export default async function HomePage() {
                 {DROP.name} — {DROP.batchLabel}
               </span>
             </div>
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-2 text-charcoal-muted">
+            <div className="flex items-center gap-6 md:gap-8">
+              <div className="flex items-center gap-4 text-charcoal">
                 <span className="material-symbols-outlined text-[16px] text-brand">
                   timer
                 </span>
-                <span className="font-display text-[10px] font-medium uppercase tracking-[0.16em]">
+                <span className="font-display text-[10px] font-medium uppercase tracking-[0.16em] text-charcoal-muted">
                   Window Closes In:
                 </span>
-                <DropCountdown initialSeconds={secondsToVaultClose()} />
+                <VaporCountdown
+                  initialSeconds={secondsToVaultClose()}
+                  height={34}
+                  labels={null}
+                />
               </div>
               <div className="hidden h-3 w-px bg-neutral-200 sm:block" />
               <Link
@@ -272,7 +276,7 @@ export default async function HomePage() {
         </section>
 
         {/* ==================== CURATED HEAVYWEIGHTS GRID =================== */}
-        <section className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 py-16 lg:px-12 lg:py-24">
           <div className="mb-12 flex flex-col justify-between gap-6 border-b border-neutral-200/60 pb-6 md:flex-row md:items-end">
             <div>
               <div className="eyebrow mb-2">
@@ -337,7 +341,7 @@ export default async function HomePage() {
         </section>
 
         {/* ==================== EDITORIAL SPLIT MOSAIC ==================== */}
-        <section className="mx-auto w-full max-w-7xl border-t border-neutral-200/60 px-6 py-16 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl border-t border-neutral-200/60 px-6 py-16 lg:px-12 lg:py-24">
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
             <div className="flex flex-col justify-center lg:col-span-5">
               <div className="eyebrow mb-3">
@@ -441,7 +445,7 @@ export default async function HomePage() {
         </section>
 
         {/* ======================== VIP ACCESS BANNER ======================== */}
-        <section className="mx-auto w-full max-w-7xl px-6 py-16 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 py-16 lg:px-12 lg:py-24">
           <div className="relative overflow-hidden rounded-3xl bg-charcoal p-10 text-center text-white shadow-2xl lg:p-16">
             <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-brand/20 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-white/10 blur-3xl" />

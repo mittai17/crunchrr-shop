@@ -3,7 +3,7 @@ import Link from "next/link";
 import { api } from "@crunchrr/shared";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
-import { DropCountdown } from "@/components/drops/drop-countdown";
+import { VaporCountdown } from "@/components/drops/vapor-countdown";
 import { ProductCard } from "@/components/shop/product-card";
 import { DROP, secondsToVaultClose } from "@/lib/drop";
 
@@ -30,7 +30,7 @@ export default async function DropsPage() {
       <SiteHeader />
 
       <main className="w-full">
-        <section className="mx-auto w-full max-w-7xl px-6 pb-10 pt-10 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-12 pt-12 lg:px-12 lg:pb-16 lg:pt-16">
           <div className="eyebrow mb-2">
             <span className="material-symbols-outlined text-sm">timer</span>
             <span>The Vault</span>
@@ -53,9 +53,9 @@ export default async function DropsPage() {
                 {DROP.name} closes in
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 text-charcoal">
               <span className="material-symbols-outlined text-brand">hourglass_top</span>
-              <DropCountdown initialSeconds={seed} />
+              <VaporCountdown initialSeconds={seed} height={44} labels={null} />
               <span className="hidden font-display text-[10px] font-medium uppercase tracking-widest text-charcoal-muted sm:inline">
                 UTC midnight
               </span>
@@ -63,7 +63,7 @@ export default async function DropsPage() {
           </div>
         </section>
 
-        <section className="mx-auto w-full max-w-7xl px-6 pb-20 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-16 lg:px-12 lg:pb-24">
           <h2 className="mb-6 border-b border-neutral-200/60 pb-4 font-display text-xl font-bold uppercase tracking-tight text-charcoal">
             Allocation Priority Pieces
           </h2>

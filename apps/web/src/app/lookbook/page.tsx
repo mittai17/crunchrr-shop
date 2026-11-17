@@ -44,7 +44,7 @@ export default function LookbookPage() {
       <SiteHeader />
 
       <main className="w-full">
-        <section className="mx-auto w-full max-w-7xl px-6 pb-12 pt-10 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-12 pt-12 lg:px-12 lg:pb-16 lg:pt-16">
           <div className="eyebrow mb-2">
             <span className="material-symbols-outlined text-sm">photo_library</span>
             <span>Drop 004 — Field Editorial</span>
@@ -62,7 +62,7 @@ export default function LookbookPage() {
           </p>
         </section>
 
-        <section className="mx-auto w-full max-w-7xl px-6 pb-20 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-16 lg:px-12 lg:pb-24">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {SHOTS.map((shot) => (
               <Link
@@ -95,7 +95,7 @@ export default function LookbookPage() {
           </div>
         </section>
 
-        <section className="mx-auto w-full max-w-7xl px-6 pb-20 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-16 lg:px-12 lg:pb-24">
           <div className="rounded-3xl bg-charcoal p-10 text-center text-white lg:p-14">
             <h2 className="mb-3 font-display text-2xl font-bold uppercase tracking-tight md:text-3xl">
               Shop the editorial

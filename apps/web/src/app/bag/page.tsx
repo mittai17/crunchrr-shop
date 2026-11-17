@@ -380,7 +380,7 @@ export default function BagPage() {
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-16 pt-8 lg:px-12">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-16 pt-10 lg:px-12 lg:pt-12">
         {/* Heading */}
         <div className="mb-6 flex flex-col justify-between gap-3 border-b border-neutral-200/60 pb-6 md:flex-row md:items-center">
           <div>

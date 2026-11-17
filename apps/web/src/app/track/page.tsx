@@ -85,7 +85,9 @@ export default function TrackOrderPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-canvas">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 lg:px-12">
+      <main className="flex-1 py-12 lg:py-16">
+        <div className="mx-auto w-full max-w-7xl px-6 lg:px-12">
+          <div className="mx-auto max-w-3xl">
         {/* Header */}
         <div className="mb-8">
           <div className="mb-2 flex items-center gap-2">
@@ -328,6 +330,8 @@ export default function TrackOrderPage() {
             </div>
           </div>
         ) : null}
+          </div>
+        </div>
       </main>
       <SiteFooter />
     </div>

@@ -58,23 +58,25 @@ export default function ManifestoPage() {
       <SiteHeader />
 
       <main className="w-full">
-        <section className="mx-auto w-full max-w-4xl px-6 pb-14 pt-14 text-center lg:px-12">
-          <div className="eyebrow mb-3 justify-center">
-            <span className="material-symbols-outlined text-sm">bolt</span>
-            <span>The Crunchrr Manifesto</span>
+        <section className="mx-auto w-full max-w-7xl px-6 pb-14 pt-14 text-center lg:px-12 lg:pb-16 lg:pt-16">
+          <div className="mx-auto max-w-4xl">
+            <div className="eyebrow mb-3 justify-center">
+              <span className="material-symbols-outlined text-sm">bolt</span>
+              <span>The Crunchrr Manifesto</span>
+            </div>
+            <h1 className="mb-5 font-display text-4xl font-bold uppercase leading-none tracking-tight text-charcoal md:text-6xl">
+              Never mass produced.
+              <span className="block text-brand">Never compromised.</span>
+            </h1>
+            <p className="mx-auto max-w-xl text-sm leading-relaxed text-charcoal-muted sm:text-base">
+              We build streetwear like an archive, not a season. Heavy fabric,
+              hard caps, honest labels — and logistics engineered so every order
+              routes to the atelier that crafts it best.
+            </p>
           </div>
-          <h1 className="mb-5 font-display text-4xl font-bold uppercase leading-none tracking-tight text-charcoal md:text-6xl">
-            Never mass produced.
-            <span className="block text-brand">Never compromised.</span>
-          </h1>
-          <p className="mx-auto max-w-xl text-sm leading-relaxed text-charcoal-muted sm:text-base">
-            We build streetwear like an archive, not a season. Heavy fabric,
-            hard caps, honest labels — and logistics engineered so every order
-            routes to the atelier that crafts it best.
-          </p>
         </section>
 
-        <section className="mx-auto w-full max-w-7xl px-6 pb-16 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-16 lg:px-12 lg:pb-24">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             {TENETS.map((t) => (
               <div
@@ -96,7 +98,8 @@ export default function ManifestoPage() {
         </section>
 
         {/* Drop protocol — anchor targets referenced from the footer */}
-        <section className="mx-auto w-full max-w-4xl px-6 pb-16 lg:px-12">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-16 lg:px-12 lg:pb-24">
+          <div className="mx-auto max-w-4xl">
           <h2 className="mb-6 border-b border-neutral-200/60 pb-4 font-display text-2xl font-bold uppercase tracking-tight text-charcoal">
             The Protocol
           </h2>
@@ -146,9 +149,11 @@ export default function ManifestoPage() {
               </div>
             ))}
           </div>
+          </div>
         </section>
 
-        <section className="mx-auto w-full max-w-4xl px-6 pb-20 lg:px-12" id="faq">
+        <section className="mx-auto w-full max-w-7xl px-6 pb-16 lg:px-12 lg:pb-24" id="faq">
+          <div className="mx-auto max-w-4xl">
           <h2 className="mb-6 border-b border-neutral-200/60 pb-4 font-display text-2xl font-bold uppercase tracking-tight text-charcoal">
             Drop FAQ
           </h2>
@@ -187,6 +192,7 @@ export default function ManifestoPage() {
               <span>Get Drop Alerts</span>
               <span className="material-symbols-outlined text-base">arrow_forward</span>
             </Link>
+          </div>
           </div>
         </section>
       </main>
